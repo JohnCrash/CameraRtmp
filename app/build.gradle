@@ -91,7 +91,7 @@ model {
             stl = 'gnustl_static'
             cppFlags.addAll(['-std=c++11'])
             ldLibs.addAll(['GLESv2', 'dl', 'log'])
-            abiFilters.addAll(['armeabi'])
+            //abiFilters.addAll(['armeabi'])
             //cFlags "-DANDROID_NDK -std=c++11 -fsigned-char -frtti -fexceptions"
             //ldLibs "GLESv2", "dl", "log"
             //ldLibs "EGL","GLESv3","dl","log"
@@ -110,6 +110,7 @@ model {
                 }
             }
         }
+
         buildTypes {
             release {
                 minifyEnabled false
@@ -118,6 +119,12 @@ model {
             debug {
               //  jniDebuggable = true
                 debuggable = true
+            }
+        }
+
+        productFlavors {
+            create('arm') {
+                ndk.abiFilters.add('armeabi')
             }
         }
     }

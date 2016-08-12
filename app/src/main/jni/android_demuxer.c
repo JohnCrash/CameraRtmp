@@ -2,7 +2,7 @@
 // Created by john on 2016/8/11.
 //
 #include "android_demuxer.h"
-
+#if 1
     #include "libavutil/parseutils.h"
     #include "libavutil/pixdesc.h"
     #include "libavutil/opt.h"
@@ -53,3 +53,4 @@
             .priv_class     = &android_class,
     };
 
+#endif
