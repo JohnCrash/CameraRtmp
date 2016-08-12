@@ -107,10 +107,10 @@ public class MainActivity extends AppCompatActivity {
                         return;
                     }
                 }
-                //AndroidDemuxer.testLiveRtmp(OpenGLRenderer._camTextrue);
-                AndroidDemuxer.openDemuxer(OpenGLRenderer._camTextrue,
-                        0,640,480,17,-1,
-                        2,0,44100);
+                AndroidDemuxer.testLiveRtmp(OpenGLRenderer._camTextrue);
+                //AndroidDemuxer.openDemuxer(OpenGLRenderer._camTextrue,
+                //        0,640,480,17,-1,
+                //        2,0,44100);
             }
         });
         t.start();

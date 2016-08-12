@@ -106,6 +106,9 @@ model {
                         library 'avformat' linkage 'static'
                         library 'avcodec' linkage 'static'
                         library 'avdevice' linkage 'static'
+                        library 'swscale' linkage 'static'
+                        library 'swresample' linkage 'static'
+                        library 'avfilter' linkage 'static'
                     }
                 }
             }
