@@ -1,0 +1,8 @@
+//
+// Created by john on 2016/8/11.
+//
+
+#ifndef CAMERARTMP_ANDROID_DEMUXER_H
+#define CAMERARTMP_ANDROID_DEMUXER_H
+
+#endif //CAMERARTMP_ANDROID_DEMUXER_H
