@@ -8,6 +8,11 @@
 #include "libavdevice/avdevice.h"
 #include "libavcodec/internal.h"
 
+enum androidDeviceType {
+    VideoDevice = 0,
+    AudioDevice = 1,
+};
+
 struct android_camera_ctx{
     const AVClass * class;
 

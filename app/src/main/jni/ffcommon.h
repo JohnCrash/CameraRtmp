@@ -8,7 +8,7 @@
 #define inline __inline
 #include "ffconfig.h"
 
-#ifdef WIN32
+#ifdef _WIN32
 #define HAVE_STRUCT_POLLFD 1
 #define snprintf _snprintf
 #endif

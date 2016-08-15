@@ -8,7 +8,7 @@ model {
             avutil{
                 headers.srcDir "${ffmpeg_path}/include"
                 binaries.withType(StaticLibraryBinary){
-                    staticLibraryFile = file("${ffmpeg_path}/prebuilt/android/${targetPlatform.getName()}/libavutil.a")
+                    staticLibraryFile = file("${ffmpeg_path}/prebuilt/android/armeabi/libavutil.a")
                 }
             }
         }
@@ -18,7 +18,7 @@ model {
             avcodec{
                 headers.srcDir "${ffmpeg_path}/include"
                 binaries.withType(StaticLibraryBinary){
-                    staticLibraryFile = file("${ffmpeg_path}/prebuilt/android/${targetPlatform.getName()}/libavcodec.a")
+                    staticLibraryFile = file("${ffmpeg_path}/prebuilt/android/armeabi/libavcodec.a")
                 }
             }
         }
@@ -28,7 +28,7 @@ model {
             avformat{
                 headers.srcDir "${ffmpeg_path}/include"
                 binaries.withType(StaticLibraryBinary){
-                    staticLibraryFile = file("${ffmpeg_path}/prebuilt/android/${targetPlatform.getName()}/libavformat.a")
+                    staticLibraryFile = file("${ffmpeg_path}/prebuilt/android/armeabi/libavformat.a")
                 }
             }
         }
@@ -38,7 +38,7 @@ model {
             avdevice{
                 headers.srcDir "${ffmpeg_path}/include"
                 binaries.withType(StaticLibraryBinary){
-                    staticLibraryFile = file("${ffmpeg_path}/prebuilt/android/${targetPlatform.getName()}/libavdevice.a")
+                    staticLibraryFile = file("${ffmpeg_path}/prebuilt/android/armeabi/libavdevice.a")
                 }
             }
         }
@@ -48,7 +48,7 @@ model {
             avfilter{
                 headers.srcDir "${ffmpeg_path}/include"
                 binaries.withType(StaticLibraryBinary){
-                    staticLibraryFile = file("${ffmpeg_path}/prebuilt/android/${targetPlatform.getName()}/libavfilter.a")
+                    staticLibraryFile = file("${ffmpeg_path}/prebuilt/android/armeabi/libavfilter.a")
                 }
             }
         }
@@ -58,7 +58,7 @@ model {
             swresample{
                 headers.srcDir "${ffmpeg_path}/include"
                 binaries.withType(StaticLibraryBinary){
-                    staticLibraryFile = file("${ffmpeg_path}/prebuilt/android/${targetPlatform.getName()}/libswresample.a")
+                    staticLibraryFile = file("${ffmpeg_path}/prebuilt/android/armeabi/libswresample.a")
                 }
             }
         }
@@ -68,7 +68,7 @@ model {
             swscale{
                 headers.srcDir "${ffmpeg_path}/include"
                 binaries.withType(StaticLibraryBinary){
-                    staticLibraryFile = file("${ffmpeg_path}/prebuilt/android/${targetPlatform.getName()}/libswscale.a")
+                    staticLibraryFile = file("${ffmpeg_path}/prebuilt/android/armeabi/libswscale.a")
                 }
             }
         }
@@ -89,8 +89,9 @@ model {
             moduleName = 'CameraRtmp'
             toolchain = 'clang'
             stl = 'gnustl_static'
-            cppFlags.addAll(['-std=c++11'])
-            ldLibs.addAll(['GLESv2', 'dl', 'log'])
+            cppFlags.addAll(['-std=c++11','-D__STDC_CONSTANT_MACROS','-D__STDC_LIMIT_MACROS','-D__STDC_FORMAT_MACROS'])
+            ldLibs.addAll(['GLESv2', 'dl', 'log','z'])
+
             //abiFilters.addAll(['armeabi'])
             //cFlags "-DANDROID_NDK -std=c++11 -fsigned-char -frtti -fexceptions"
             //ldLibs "GLESv2", "dl", "log"
@@ -106,8 +107,8 @@ model {
                         library 'avformat' linkage 'static'
                         library 'avcodec' linkage 'static'
                         library 'avdevice' linkage 'static'
-                        library 'swscale' linkage 'static'
                         library 'swresample' linkage 'static'
+                        library 'swscale' linkage 'static'
                         library 'avfilter' linkage 'static'
                     }
                 }
