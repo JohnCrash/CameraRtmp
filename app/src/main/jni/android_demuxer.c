@@ -61,14 +61,20 @@ android_cycle_devices(AVFormatContext *avctx,enum androidDeviceType devtype)
     const char *devtypename = (devtype == VideoDevice) ? "video" : "audio only";
 
     if(devtype==VideoDevice){
-
+        int n = android_getNumberOfCameras();
+        for(int i=0;i<n;i++) {
+            av_log(avctx, AV_LOG_INFO, " \"camera_%d\"\n", i);
+            av_log(avctx, AV_LOG_INFO, "    Alternative name \"camera_%d\"\n", i);
+        }
     }
     else if(devtype==AudioDevice){
-
+        av_log(avctx, AV_LOG_INFO, " \"microphone\"\n");
+        av_log(avctx, AV_LOG_INFO, "    Alternative name \"microphone\"\n");
     }
     else{
-
+        return AVERROR(EIO);
     }
+    return 0;
 }
 
 /*

@@ -4,8 +4,6 @@ import android.graphics.ImageFormat;
 import android.graphics.SurfaceTexture;
 import android.hardware.Camera;
 import android.media.MediaRecorder;
-import android.opengl.GLES11Ext;
-import android.opengl.GLES20;
 import android.os.Build;
 import android.util.Log;
 
@@ -16,8 +14,6 @@ import java.util.Deque;
 import java.util.List;
 import android.media.AudioFormat;
 import android.media.AudioRecord;
-
-import javax.microedition.khronos.opengles.GL10;
 
 /**
  * Created by john on 2016/7/15.

@@ -23,21 +23,8 @@ namespace ff
 
 		c = pec->_audio_st->codec;
 
-		codec = avcodec_find_decoder(audio_codec_id);
-		if (!codec)
-		{
-			av_log(NULL, AV_LOG_FATAL, "Could not find encoder '%s'\n", avcodec_get_name(audio_codec_id));
-			return -1;
-		}
-
-		/* open it */
-		av_dict_copy(&opt, opt_arg, 0);
-		ret = avcodec_open2(c, codec, &opt);
-		av_dict_free(&opt);
-		if (ret < 0) {
-			char errmsg[ERROR_BUFFER_SIZE];
-			av_strerror(ret, errmsg, ERROR_BUFFER_SIZE);
-			av_log(NULL, AV_LOG_FATAL, "Could not open audio codec: %s\n", errmsg);
+		if(avcodec_decode_init(c,audio_codec_id,opt_arg)!=0){
+			av_log(NULL, AV_LOG_FATAL, "Could not init decoder '%s'\n", avcodec_get_name(audio_codec_id));
 			return -1;
 		}
 
@@ -54,23 +41,9 @@ namespace ff
 		if (!pec->_actx.frame)
 			return -1;
 
-		/* create resampler context */
-		pec->_actx.swr_ctx = swr_alloc();
-		if (!pec->_actx.swr_ctx) {
-			av_log(NULL, AV_LOG_FATAL, "Could not allocate resampler context.\n");
-			return -1;
-		}
-
-		/* set options */
-		av_opt_set_int(pec->_actx.swr_ctx, "in_channel_count", c->channels, 0);
-		av_opt_set_int(pec->_actx.swr_ctx, "in_sample_rate", c->sample_rate, 0);
-		av_opt_set_sample_fmt(pec->_actx.swr_ctx, "in_sample_fmt", AV_SAMPLE_FMT_S16, 0);
-		av_opt_set_int(pec->_actx.swr_ctx, "out_channel_count", c->channels, 0);
-		av_opt_set_int(pec->_actx.swr_ctx, "out_sample_rate", c->sample_rate, 0);
-		av_opt_set_sample_fmt(pec->_actx.swr_ctx, "out_sample_fmt", c->sample_fmt, 0);
-
-		/* initialize the resampling context */
-		if ((ret = swr_init(pec->_actx.swr_ctx)) < 0) {
+		pec->_actx.swr_ctx = av_swr_alloc(c->channels,c->sample_rate,AV_SAMPLE_FMT_S16,
+										  c->channels,c->sample_rate,c->sample_fmt);
+		if(!pec->_actx.swr_ctx){
 			av_log(NULL, AV_LOG_FATAL, "Failed to initialize the resampling context\n");
 			return -1;
 		}
@@ -87,22 +60,8 @@ namespace ff
 		AVDictionary *opt = NULL;
 		AVCodec *codec;
 
-		codec = avcodec_find_decoder(video_codec_id);
-		if (!codec)
-		{
-			av_log(NULL, AV_LOG_FATAL, "Could not find encoder '%s'\n", avcodec_get_name(video_codec_id));
-			return -1;
-		}
-
-		av_dict_copy(&opt, opt_arg, 0);
-
-		/* open the codec */
-		ret = avcodec_open2(c, codec, &opt);
-		av_dict_free(&opt);
-		if (ret < 0) {
-			char errmsg[ERROR_BUFFER_SIZE];
-			av_strerror(ret, errmsg, ERROR_BUFFER_SIZE);
-			av_log(NULL, AV_LOG_FATAL, "Could not open video codec: %s\n", errmsg);
+		if(avcodec_decode_init(c,video_codec_id,opt_arg)!=0){
+			av_log(NULL, AV_LOG_FATAL, "Could not init decoder '%s'\n", avcodec_get_name(video_codec_id));
 			return -1;
 		}
 

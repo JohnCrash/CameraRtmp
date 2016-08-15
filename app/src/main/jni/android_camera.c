@@ -98,6 +98,34 @@ int android_getCameraCapabilityInteger(int n, int *pinfo,int len)
     return ret;
 }
 
+/*
+ * 打开android摄像头和录音设备，tex是一个OES材质
+ *         glGenTextures(1,textures,0);
+ *         glBindTexture(GL_TEXTURE_EXTERNAL_OES, textures[0]);
+ *         glTexParameterf(GL_TEXTURE_EXTERNAL_OES,
+ *                 GL_TEXTURE_MIN_FILTER,
+ *                 GL_LINEAR);
+ *         glTexParameterf(GL_TEXTURE_EXTERNAL_OES,
+ *                 GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+ *         // Clamp to edge is only option.
+ *         glTexParameteri(GL_TEXTURE_EXTERNAL_OES,
+ *                 GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+ *         glTexParameteri(GL_TEXTURE_EXTERNAL_OES,
+ *                 GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+ * 注意打开android权限
+ *     <uses-permission android:name="android.permission.INTERNET"/>
+ *     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+ *     <uses-permission android:name="android.permission.CAMERA" />
+ *     <uses-feature android:name="android.hardware.camera" />
+ *     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+ *     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+ *
+ * nDevice 设备序号
+ * w,h 请求的尺寸，fmt请求的图像的格式，fps请求的帧率。注意请求不一定被满足。
+ * nChannel 录音频道数，sampleFmt 采样格式，sampleRate采样率
+ * 成功返回0，失败返回<0
+ *
+ */
 int android_openDemuxer(int tex,int nDevice, int w, int h, int fmt, int fps,
                         int nChannel, int sampleFmt, int sampleRate)
 {
@@ -111,6 +139,9 @@ int android_openDemuxer(int tex,int nDevice, int w, int h, int fmt, int fps,
     return ret;
 }
 
+/*
+ * 如果使用预视材质，需要在OpenGL渲染线程中调用这个更新函数，用来向材质中装入图像
+ */
 void android_updatePreivewTexture(float * pTextureMatrix)
 {
     if(!pTextureMatrix)return;
@@ -126,6 +157,9 @@ void android_updatePreivewTexture(float * pTextureMatrix)
     }
 }
 
+/*
+ * 当更新好一个视频材质时，将会增加预视帧数
+ */
 int64_t android_getPreivewFrameCount()
 {
     struct JniMethodInfo jmi;
@@ -137,6 +171,9 @@ int64_t android_getPreivewFrameCount()
     return -1;
 }
 
+/*
+ * 关闭当前的android摄像头和录音设备
+ */
 void android_closeDemuxer()
 {
     struct JniMethodInfo jmi;
@@ -147,6 +184,9 @@ void android_closeDemuxer()
     _demuxerCB = NULL;
 }
 
+/*
+ * 打开或者关闭自动对焦
+ */
 int android_autoFoucs(int bAutofocus)
 {
     struct JniMethodInfo jmi;
@@ -158,6 +198,9 @@ int android_autoFoucs(int bAutofocus)
     return 0;
 }
 
+/*
+ * 归还缓冲区
+ */
 void android_releaseBuffer(void * bufObj, unsigned char * buf)
 {
     struct JniMethodInfo jmi;
