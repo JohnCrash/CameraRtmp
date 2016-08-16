@@ -13,6 +13,8 @@
 
 #include "android_camera.h"
 
+#define MAX_GRAB_BUFFER_SIZE (32*1024*1024)
+
 static AVFormatContext *_avctx = NULL;
 
 static int parse_device_name(AVFormatContext *avctx)
@@ -198,8 +200,16 @@ static int android_grab_buffer(int type,void * bufObj,int buf_size,unsigned char
     pthread_mutex_lock(&ctx->mutex);
     /*
      * 这里必须考虑俘获缓冲区大小，如果读帧的数据太慢导致缓冲区积累需要丢弃
+     * 这只是简单的控制俘获队列中的缓存区大小
      */
-    //do it...
+    if( ctx->bufsize > MAX_GRAB_BUFFER_SIZE ){
+        if(type==VIDEO_DATA)
+            android_releaseBuffer(bufObj,buf);
+        pthread_cond_signal(&ctx->cond); //别免空队列无限等待
+        pthread_mutex_unlock(&ctx->mutex);
+        av_log(_avctx,AV_LOG_ERROR,"real-time buffer too full,frame dropped!");
+        return 0;
+    }
 
     pktl_next = av_mallocz(sizeof(AVPacketList));
     if(!pktl_next){
@@ -244,6 +254,7 @@ static int android_grab_buffer(int type,void * bufObj,int buf_size,unsigned char
     for(ppktl = &ctx->pktl ; *ppktl ; ppktl = &(*ppktl)->next);
     *ppktl = pktl_next;
 
+    ctx->bufsize += buf_size;
     pthread_cond_signal(&ctx->cond);
     pthread_mutex_unlock(&ctx->mutex);
     return 0;
@@ -453,6 +464,7 @@ static int android_read_header(AVFormatContext *avctx)
          * 一次只能打开一个俘获android设备
          */
         _avctx = avctx;
+        ctx->bufsize = 0;
         ret = 0;
     }else{
         av_log(avctx, AV_LOG_ERROR, "android_read_header videoDevice = %s\n",ctx->device_name[VideoDevice]);
@@ -477,7 +489,7 @@ static int android_read_packet(AVFormatContext *s, AVPacket *pkt)
             *pkt = pktl->pkt;
             ctx->pktl = ctx->pktl->next;
             av_free(pktl);
-            //ctx->curbufsize[pkt->stream_index] -= pkt->size;
+            ctx->bufsize -= pkt->size;
         }
         //ResetEvent(ctx->event[1]);
         //ReleaseMutex(ctx->mutex);

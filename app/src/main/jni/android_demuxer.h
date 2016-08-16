@@ -42,6 +42,8 @@ struct android_camera_ctx{
     int sample_rate;
     int sample_size;
     int channels;
+
+    int bufsize;
 };
 
 #endif //CAMERARTMP_ANDROID_DEMUXER_H
