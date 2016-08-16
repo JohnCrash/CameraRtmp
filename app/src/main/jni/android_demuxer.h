@@ -17,12 +17,13 @@ struct android_camera_ctx{
     const AVClass * class;
 
     char *device_name[2];
-
+    int   stream_index[2];
     int   list_options;
     int   list_devices;
 
     int eof;
 
+    int oes_texture;
     enum AVPixelFormat pixel_format;
     enum AVCodecID video_codec_id;
     char *framerate;
@@ -31,6 +32,7 @@ struct android_camera_ctx{
     int requested_height;
     AVRational requested_framerate;
 
+    enum AVSampleFormat sample_format;
     int sample_rate;
     int sample_size;
     int channels;

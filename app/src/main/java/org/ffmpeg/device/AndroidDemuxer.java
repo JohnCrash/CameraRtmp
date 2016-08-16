@@ -1,4 +1,4 @@
-package com.example.wesnoth.camerartmp;
+package org.ffmpeg.device;
 
 import android.graphics.ImageFormat;
 import android.graphics.SurfaceTexture;
@@ -68,8 +68,8 @@ public class AndroidDemuxer{
     private static Deque<byte []> _buffers = null;
     private static int nMaxFrame = 3;
     private static int _bufferSize;
-    public static int _width,_height,_targetFps;
-    public static int _pixFmt;
+    private static int _width,_height,_targetFps;
+    private static int _pixFmt;
     private static AudioRecord _audioRecord = null;
     private static Thread _audioRecordThread = null;
     private static boolean _audioRecordLoop = false;
@@ -80,7 +80,7 @@ public class AndroidDemuxer{
     private static int _sampleRate = 0;
     private static long _nGrabFrame = 0;
     private static long _timeStrampBegin = 0;
-    public static byte[] _currentBuf = null;
+    //public static byte[] _currentBuf = null;
 
     public static SurfaceTexture getSurfaceTexture(){
         return _textrue;
@@ -113,8 +113,6 @@ public class AndroidDemuxer{
     private static native void ratainBuffer(int type,byte [] data,int len,
                                             int fmt,int p0,int p1,
                                             long timestramp);
-    public static native void testLiveRtmp(int tex);
-    public static native void testLiveRtmpEnd();
 
     public static byte [] newFrame(){
         return new byte[_bufferSize];
@@ -239,7 +237,7 @@ public class AndroidDemuxer{
                 @Override
                 public void onPreviewFrame(byte[] data, Camera camera) {
                     //Log.w(TAG, String.format("onPreviewFrame 0 %d",data.length));
-                    _currentBuf = Arrays.copyOf(data,data.length);
+                    //_currentBuf = Arrays.copyOf(data,data.length);
                     ratainBuffer(0, data,data.length,_pixFmt,_width,_height,System.nanoTime()-_timeStrampBegin);
                     synchronized (_buffers) {
                         if (_buffers.isEmpty()) {

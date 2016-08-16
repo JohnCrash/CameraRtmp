@@ -221,6 +221,31 @@ int android_setDemuxerCallback( AndroidDemuxerCB_t cb )
 }
 
 /*
+ * 当设备打开后获取最终的参数
+ */
+int android_getDemuxerInfo(int *pw,int *ph,int *pfmt,int *pfps,
+                           int *pch,int *psampleFmt,int *psampleRate)
+{
+    struct JniMethodInfo jmi;
+
+    if(jniGetStaticMethodInfo(&jmi,ANDROID_DEMUXER_CLASS_NAME,"getDemuxerInfo","([I)Z")) {
+        jintArray pinfo = (*jmi.env)->NewIntArray(jmi.env,7);
+        jboolean b = (*jmi.env)->CallStaticBooleanMethod(jmi.env,jmi.classID,jmi.methodID,pinfo);
+        jint* pbuf = (*jmi.env)->GetIntArrayElements(jmi.env,pinfo,0);
+        if(pw)*pw = pbuf[0];
+        if(ph)*ph = pbuf[1];
+        if(pfmt)*pfmt = pbuf[2];
+        if(pfps)*pfps = pbuf[3];
+        if(pch)*pch = pbuf[4];
+        if(psampleFmt)*psampleFmt = pbuf[5];
+        if(psampleRate)*psampleRate = pbuf[6];
+        (*jmi.env)->ReleaseIntArrayElements(jmi.env,pinfo,pbuf,JNI_ABORT);
+        (*jmi.env)->DeleteLocalRef(jmi.env,jmi.classID);
+        return b ? 0 : -1;
+    }
+    return -2;
+}
+/*
  * 图像数据和音频数据传入
  */
 JNIEXPORT void JNICALL

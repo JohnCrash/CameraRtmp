@@ -51,42 +51,31 @@ typedef int (*JniGetStaticMethodInfo_t)(struct JniMethodInfo *pmethodinfo,
 
 extern JniGetStaticMethodInfo_t jniGetStaticMethodInfo;
 
-attribute_deprecated
 const char * android_ImageFormatName( int ifn );
 
-attribute_deprecated
 int android_ImageFormat(const char * fn);
 
-attribute_deprecated
 typedef int (*AndroidDemuxerCB_t)(int type,void * bufObj,int size,unsigned char * buf,
                                   int fmt,int w,int h,int64_t timestramp); //fmt,ch,rate
 
-attribute_deprecated
 int android_getNumberOfCameras();
 
-attribute_deprecated
-int android_getCameraCapabilityInteger2(int n, int *pinfo,int len);
+int android_getCameraCapabilityInteger(int n, int *pinfo,int len);
 
-attribute_deprecated
 int android_openDemuxer(int tex,int nDevice, int w, int h, int fmt, int fps,
                         int nChannel, int sampleFmt, int sampleRate);
+int android_getDemuxerInfo(int *pw,int *ph,int *pfmt,int *pfps,int *pch,int *psampleFmt,int *psampleRate);
 
-attribute_deprecated
 void android_updatePreivewTexture(float * pTextureMatrix);
 
-attribute_deprecated
 int64_t android_getPreivewFrameCount();
 
-attribute_deprecated
 void android_closeDemuxer();
 
-attribute_deprecated
 int android_autoFoucs(int b);
 
-attribute_deprecated
 void android_releaseBuffer(void * bufObj, unsigned char * buf);
 
-attribute_deprecated
 int android_setDemuxerCallback( AndroidDemuxerCB_t cb );
 
 #endif
