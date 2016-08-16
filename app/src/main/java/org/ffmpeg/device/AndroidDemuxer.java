@@ -161,7 +161,7 @@ public class AndroidDemuxer{
             Log.e(TAG,"openDemuxer already opened");
             return -10;
         }
-        if( nDevice>=0 ) {
+        if( nDevice>=0 && tex >= 0 ) {
             int bitsPrePixel = ImageFormat.getBitsPerPixel(fmt);
             if (bitsPrePixel <= 0 || w <= 0 || h <= 0) {
                 Log.e(TAG,"openDemuxer invalid argument");
@@ -333,6 +333,12 @@ public class AndroidDemuxer{
 
     public static long getGrabFrameCount(){
         return _nGrabFrame;
+    }
+
+    public static boolean isClosed(){
+        if(_cam==null && _audioRecord==null)
+            return true;
+        return false;
     }
 
     public static void closeDemuxer(){

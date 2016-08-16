@@ -220,6 +220,18 @@ int android_setDemuxerCallback( AndroidDemuxerCB_t cb )
     _demuxerCB = cb;
 }
 
+int android_isClosed()
+{
+    struct JniMethodInfo jmi;
+
+    if(jniGetStaticMethodInfo(&jmi,ANDROID_DEMUXER_CLASS_NAME,"isClosed","()Z")) {
+        jboolean b = (*jmi.env)->CallStaticBooleanMethod(jmi.env,jmi.classID,jmi.methodID);
+        (*jmi.env)->DeleteLocalRef(jmi.env,jmi.classID);
+        return b ? 1 : 0;
+    }
+    return -1;
+}
+
 /*
  * 当设备打开后获取最终的参数
  */
@@ -252,23 +264,31 @@ JNIEXPORT void JNICALL
 Java_org_ffmpeg_device_AndroidDemuxer_ratainBuffer(JNIEnv * env , jclass cls,
 int type, jbyteArray bobj,int len,int fmt,int p0,int p1,jlong timestramp)
 {
-    if(_demuxerCB){
-        if(type==VIDEO_DATA) {
-            jbyteArray gobj = (jbyteArray)(*env)->NewGlobalRef(env,bobj);
-            jbyte *buf = (*env)->GetByteArrayElements(env,gobj, 0);
-            if(_demuxerCB(type, gobj, len, (unsigned char * ) buf,fmt,p0,p1,timestramp )) {
-                android_closeDemuxer();
+    if(type==VIDEO_DATA) {
+            /*
+             * 为了避免memcpy操作，这里为缓冲区创建一个全局引用。确保缓存区在编码器中不会被释放
+             * 当使用完成后调用android_releaseBuffer归还缓冲区。
+             */
+            jbyteArray gobj = (jbyteArray)(*env)->NewGlobalRef(env, bobj);
+            jbyte *buf = (*env)->GetByteArrayElements(env, gobj, 0);
+            if(_demuxerCB){
+                if(_demuxerCB(type, gobj, len, (unsigned char * ) buf,fmt,p0,p1,timestramp )) {
+                    android_releaseBuffer(gobj,buf);
+                    android_closeDemuxer();
+                }
+            }else{
+                //没有回调直接归还缓冲区
+                android_releaseBuffer(gobj,buf);
             }
-        }else if(type==AUDIO_DATA){
-            jbyte *buf = (*env)->GetByteArrayElements(env,bobj, 0);
-            if ( _demuxerCB(type, bobj, len, (unsigned char * ) buf,fmt,p0,p1,timestramp )) {
-                android_closeDemuxer();
-            }
-            (*env)->ReleaseByteArrayElements(env,bobj,(jbyte*)buf,JNI_ABORT);
-        }else{
-            if ( _demuxerCB(type, bobj, 0, NULL,fmt,p0,p1,timestramp )) {
-                android_closeDemuxer();
-            }
+    }else if(type==AUDIO_DATA){
+        jbyte *buf = (*env)->GetByteArrayElements(env,bobj, 0);
+        if ( _demuxerCB(type, bobj, len, (unsigned char * ) buf,fmt,p0,p1,timestramp )) {
+            android_closeDemuxer();
+        }
+        (*env)->ReleaseByteArrayElements(env,bobj,(jbyte*)buf,JNI_ABORT);
+    }else{
+        if ( _demuxerCB(type, bobj, 0, NULL,fmt,p0,p1,timestramp )) {
+            android_closeDemuxer();
         }
     }
     (*env)->DeleteLocalRef(env,bobj);

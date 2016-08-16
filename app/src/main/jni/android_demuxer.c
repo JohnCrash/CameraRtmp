@@ -13,6 +13,8 @@
 
 #include "android_camera.h"
 
+static AVFormatContext *_avctx = NULL;
+
 static int parse_device_name(AVFormatContext *avctx)
 {
     struct android_camera_ctx *ctx = avctx->priv_data;
@@ -170,9 +172,80 @@ android_list_device_options(AVFormatContext *avctx,enum androidDeviceType devtyp
     return 0;
 }
 
-static int android_grab_buffer(int type,void * bufObj,int size,unsigned char * buf,
+static void android_buffer_release(void *opaque, uint8_t *data)
+{
+    android_releaseBuffer(opaque,data);
+}
+/*
+ * 俘获回调
+ */
+static int android_grab_buffer(int type,void * bufObj,int buf_size,unsigned char * buf,
                                int fmt,int w,int h,int64_t timestramp)
 {
+    struct android_camera_ctx *ctx;
+    AVPacketList **ppktl, *pktl_next;
+
+    if(!_avctx){
+        av_log(_avctx, AV_LOG_ERROR, "android_grab_buffer _avctx=NULL'.\n");
+        return -1;
+    }
+
+    ctx = _avctx->priv_data;
+
+    /*
+     * 这里需要进行线程同步，标准生产消费模型
+     */
+    pthread_mutex_lock(&ctx->mutex);
+    /*
+     * 这里必须考虑俘获缓冲区大小，如果读帧的数据太慢导致缓冲区积累需要丢弃
+     */
+    //do it...
+
+    pktl_next = av_mallocz(sizeof(AVPacketList));
+    if(!pktl_next){
+        pthread_cond_signal(&ctx->cond); //别免空队列无限等待
+        pthread_mutex_unlock(&ctx->mutex);
+        return -2;
+    }
+    pktl_next->pkt.pts = timestramp;
+    if(type==VIDEO_DATA){
+        /*
+         * 这里为了避免避免使用memcpy，采用引用计数法管理缓冲区
+         * buf 最后使用android_releaseBuffer归还缓冲区
+         */
+        pktl_next->pkt.stream_index = ctx->stream_index[VideoDevice];
+
+        /*
+         * 创建一个引用计数缓冲区
+         */
+        pktl_next->pkt.buf = av_buffer_create(buf,buf_size,
+                                              android_buffer_release,
+                                              bufObj,AV_BUFFER_FLAG_READONLY);
+        pktl_next->pkt.data = buf;
+        pktl_next->pkt.size = buf_size;
+    }else if(type==AUDIO_DATA){
+        /*
+         * 创建一个新的packet
+         */
+        if(av_new_packet(&pktl_next->pkt, buf_size) < 0){
+            av_free(pktl_next);
+            pthread_cond_signal(&ctx->cond); //别免空队列无限等待
+            pthread_mutex_unlock(&ctx->mutex);
+            return -3;
+        }
+
+        pktl_next->pkt.stream_index = ctx->stream_index[AudioDevice];
+
+        memcpy(pktl_next->pkt.data, buf, buf_size);
+    }
+    /*
+     * 加入列表
+     */
+    for(ppktl = &ctx->pktl ; *ppktl ; ppktl = &(*ppktl)->next);
+    *ppktl = pktl_next;
+
+    pthread_cond_signal(&ctx->cond);
+    pthread_mutex_unlock(&ctx->mutex);
     return 0;
 }
 
@@ -185,6 +258,7 @@ static enum AVCodecID waveform_codec_id(enum AVSampleFormat sample_fmt)
         default:                return AV_CODEC_ID_NONE; /* Should never happen. */
     }
 }
+
 static enum AVSampleFormat waveform_format(int width)
 {
     switch(width){
@@ -194,13 +268,45 @@ static enum AVSampleFormat waveform_format(int width)
     }
     return AV_SAMPLE_FMT_NONE;
 }
+
+static enum AVPixelFormat android_pixfmt(int fmt)
+{
+    switch(fmt){
+        case NV21:return AV_PIX_FMT_NV21;
+        case NV16:return AV_PIX_FMT_NV16;
+        case YUV_420_888:return AV_PIX_FMT_YUV420P;
+        case YUV_422_888:return AV_PIX_FMT_YUV422P;
+        case YUV_444_888:return AV_PIX_FMT_YUV444P;
+        case YV12:return AV_PIX_FMT_YUV420P;//宽度16位对齐的YUV420P,stride = ALIGN(width, 16)
+        case YUY2:return AV_PIX_FMT_YUYV422;
+        case FLEX_RGBA_8888:return AV_PIX_FMT_GBRAP;
+        case FLEX_RGB_888:return AV_PIX_FMT_GBRP;
+        default:return AV_PIX_FMT_NONE;
+    }
+}
+
+static int android_pixfmt_prebits(int fmt)
+{
+    switch(fmt){
+        case NV21:12;
+        case NV16:16;
+        case YUV_420_888:12;
+        case YUV_422_888:16;
+        case YUV_444_888:24;
+        case YV12:return 12;
+        case YUY2:return 16;
+        case FLEX_RGBA_8888:return 32;
+        case FLEX_RGB_888:return 24;
+        default:return 0;
+    }
+}
+
 /*
  * 加入设备
  */
 static int add_device(AVFormatContext *avctx,enum androidDeviceType devtype)
 {
     int ret = AVERROR(EIO);
-   // AM_MEDIA_TYPE type;
     AVCodecParameters *par;
     AVStream *st;
 
@@ -216,14 +322,21 @@ static int add_device(AVFormatContext *avctx,enum androidDeviceType devtype)
     par = st->codecpar;
     if(devtype==VideoDevice){
         AVRational time_base;
-
+        int width,height;
+        int fmt,fps;
+        if( android_getDemuxerInfo(&width,&height,&fmt,&fps,NULL,NULL,NULL)!=0 ){
+            ret = AVERROR(ENOMEM);
+            return ret;
+        }
+        time_base = (AVRational) { fps, 10000000 };
         st->avg_frame_rate = av_inv_q(time_base);
         st->r_frame_rate = av_inv_q(time_base);
         par->codec_type = AVMEDIA_TYPE_VIDEO;
-     //   par->width      = bih->biWidth;
-     //   par->height     = bih->biHeight;
-     //   par->codec_tag  = bih->biCompression;
-     //   par->format     = dshow_pixfmt(bih->biCompression, bih->biBitCount);
+        par->width      = width;
+        par->height     = height;
+        par->format = android_pixfmt(fmt);
+        par->codec_id = AV_CODEC_ID_RAWVIDEO;
+        par->bits_per_coded_sample = android_pixfmt_prebits(fmt);
     } else{
         par->codec_type  = AVMEDIA_TYPE_AUDIO;
         par->format      = waveform_format(ctx->sample_format);
@@ -314,11 +427,32 @@ static int android_read_header(AVFormatContext *avctx)
             av_log(avctx, AV_LOG_ERROR, "android_openDemuxer return %d\n",result);
             return ret;
         }
-        ret = add_device(avctx,VideoDevice);
-        if(ret<0){
-            av_log(avctx, AV_LOG_ERROR, "add_device return %d\n",ret);
+        if( ctx->oes_texture > 0 ) {
+            ret = add_device(avctx, VideoDevice);
+            if (ret < 0) {
+                av_log(avctx, AV_LOG_ERROR, "add_device VideoDevice return %d\n", ret);
+                return ret;
+            }
+        }
+        if( ctx->channels > 0 ) {
+            ret = add_device(avctx, AudioDevice);
+            if (ret < 0) {
+                av_log(avctx, AV_LOG_ERROR, "add_device AudioDevice return %d\n", ret);
+                return ret;
+            }
+        }
+        if(!pthread_mutex_init(&ctx->mutex,NULL)){
+            av_log(avctx, AV_LOG_ERROR, "pthread_mutex_init non-zero");
             return ret;
         }
+        if(!pthread_cond_init(&ctx->cond,NULL)){
+            av_log(avctx, AV_LOG_ERROR, "pthread_cond_init non-zero");
+            return ret;
+        }
+        /*
+         * 一次只能打开一个俘获android设备
+         */
+        _avctx = avctx;
         ret = 0;
     }else{
         av_log(avctx, AV_LOG_ERROR, "android_read_header videoDevice = %s\n",ctx->device_name[VideoDevice]);
@@ -328,13 +462,77 @@ static int android_read_header(AVFormatContext *avctx)
 
 static int android_read_packet(AVFormatContext *s, AVPacket *pkt)
 {
-    return 0;
+    struct android_camera_ctx *ctx = s->priv_data;
+    AVPacketList *pktl = NULL;
+
+    /*
+     * 俘获线程和读取线程，需要同步处理
+     */
+    while (!ctx->eof && !pktl) {
+        //WaitForSingleObject(ctx->mutex, INFINITE);
+        pthread_mutex_lock(&ctx->mutex);
+
+        pktl = ctx->pktl;
+        if (pktl) {
+            *pkt = pktl->pkt;
+            ctx->pktl = ctx->pktl->next;
+            av_free(pktl);
+            //ctx->curbufsize[pkt->stream_index] -= pkt->size;
+        }
+        //ResetEvent(ctx->event[1]);
+        //ReleaseMutex(ctx->mutex);
+        pthread_mutex_unlock(&ctx->mutex);
+
+        if (!pktl) {
+            if (_avctx==NULL || android_isClosed()) {
+                ctx->eof = 1;
+            } else if (s->flags & AVFMT_FLAG_NONBLOCK) {
+                return AVERROR(EAGAIN);
+            } else {
+                //WaitForMultipleObjects(2, ctx->event, 0, INFINITE);
+                pthread_cond_wait(&ctx->cond,&ctx->mutex);
+            }
+        }
+    }
+
+    return ctx->eof ? AVERROR(EIO) : pkt->size;
 }
 
 static int android_read_close(AVFormatContext *s)
 {
     struct android_camera_ctx *ctx = s->priv_data;
+    AVPacketList *pktl;
+
+    /*
+     * 关闭android俘获设备，即使没有打开也可以调用
+     */
     android_closeDemuxer();
+
+    /*
+     * 只有在成功打开才进行释放
+     */
+    if(_avctx) {
+        _avctx = NULL;
+        pthread_mutex_destroy(&ctx->mutex);
+        pthread_cond_destroy(&ctx->cond);
+    }
+
+    if (ctx->device_name[0])
+        av_freep(&ctx->device_name[0]);
+    if (ctx->device_name[1])
+        av_freep(&ctx->device_name[1]);
+
+    /*
+     * 释放缓冲区
+     */
+    pktl = ctx->pktl;
+    while (pktl) {
+        AVPacketList *next = pktl->next;
+        av_packet_unref(&pktl->pkt);
+        av_free(pktl);
+        pktl = next;
+    }
+
     return 0;
 }
 

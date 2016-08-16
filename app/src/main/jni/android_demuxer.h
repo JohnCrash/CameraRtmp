@@ -5,6 +5,7 @@
 #ifndef CAMERARTMP_ANDROID_DEMUXER_H
 #define CAMERARTMP_ANDROID_DEMUXER_H
 
+#include <pthread.h>
 #include "libavdevice/avdevice.h"
 #include "libavcodec/internal.h"
 
@@ -20,6 +21,11 @@ struct android_camera_ctx{
     int   stream_index[2];
     int   list_options;
     int   list_devices;
+
+    pthread_mutex_t mutex;
+    pthread_cond_t  cond;
+
+    AVPacketList *pktl;
 
     int eof;
 

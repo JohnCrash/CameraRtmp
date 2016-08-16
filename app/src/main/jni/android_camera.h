@@ -72,6 +72,8 @@ int64_t android_getPreivewFrameCount();
 
 void android_closeDemuxer();
 
+int android_isClosed();
+
 int android_autoFoucs(int b);
 
 void android_releaseBuffer(void * bufObj, unsigned char * buf);
