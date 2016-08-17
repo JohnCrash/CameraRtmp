@@ -87,7 +87,7 @@ model {
 
         ndk {
             moduleName = 'CameraRtmp'
-            toolchain = 'clang'
+          //  toolchain = 'clang'
             stl = 'gnustl_static'
             cppFlags.addAll(['-std=c++11','-D__STDC_CONSTANT_MACROS','-D__STDC_LIMIT_MACROS','-D__STDC_FORMAT_MACROS'])
             ldLibs.addAll(['GLESv2', 'dl', 'log','z'])

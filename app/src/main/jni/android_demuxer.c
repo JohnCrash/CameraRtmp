@@ -62,10 +62,11 @@ android_cycle_devices(AVFormatContext *avctx,enum androidDeviceType devtype)
 {
     struct android_camera_ctx *ctx = avctx->priv_data;
     const char *device_name = ctx->device_name[devtype];
+    int i,n;
 
     if(devtype==VideoDevice){
-        int n = android_getNumberOfCameras();
-        for(int i=0;i<n;i++) {
+        n = android_getNumberOfCameras();
+        for(i=0;i<n;i++) {
             av_log(avctx, AV_LOG_INFO, " \"camera_%d\"\n", i);
             av_log(avctx, AV_LOG_INFO, "    Alternative name \"camera_%d\"\n", i);
         }
@@ -102,6 +103,10 @@ android_list_device_options(AVFormatContext *avctx,enum androidDeviceType devtyp
     struct android_camera_ctx *ctx = avctx->priv_data;
     const char *device_name = ctx->device_name[devtype];
     int deviceId;
+    int n,i,off1,off2,min_fps,max_fps,s,fps,k;
+    int * pinfo;
+    int j,w,h;
+    const char *formatName;
 
     deviceId = parse_device_id(device_name);
     if(deviceId<0){
@@ -109,23 +114,23 @@ android_list_device_options(AVFormatContext *avctx,enum androidDeviceType devtyp
         return AVERROR(EIO);
     }
     if(devtype==VideoDevice){
-        int n = android_getNumberOfCameras();
-        int* pinfo = malloc(MAXCAPS*sizeof(int));
-        for(int i=0;i<n;i++) {
+        n = android_getNumberOfCameras();
+        pinfo = malloc(MAXCAPS*sizeof(int));
+        for(i=0;i<n;i++) {
             if(i==deviceId) {
                 int ncount = android_getCameraCapabilityInteger(deviceId, pinfo, MAXCAPS);
                 if (ncount > 0) {
                     av_log(avctx, AV_LOG_INFO, "face : %s\n", pinfo[0]==1?"front":"back");
                     av_log(avctx, AV_LOG_INFO, "orientation : %d\n", pinfo[1]);
-                    int off1 = pinfo[2]*2+2+1;
-                    int off2 = off1+pinfo[off1]+1;
-                    int min_fps = 100;
-                    int max_fps = 0;
+                    off1 = pinfo[2]*2+2+1;
+                    off2 = off1+pinfo[off1]+1;
+                    min_fps = 100;
+                    max_fps = 0;
                     /*
                      * 摄像头支持的帧率
                      */
-                    for(int s=0;s<pinfo[off2];s++){
-                        int fps =  pinfo[off2+s+1];
+                    for(s=0;s<pinfo[off2];s++){
+                        fps =  pinfo[off2+s+1];
                         av_log(avctx, AV_LOG_INFO,"   framerate: %d \n",fps);
                         if( min_fps > fps )
                             min_fps = fps;
@@ -136,8 +141,8 @@ android_list_device_options(AVFormatContext *avctx,enum androidDeviceType devtyp
                      * 摄像头支持的格式,FLEX_RGBA_8888,FLEX_RGB_888,JPEG,NV16,YUV_420_888,YUV_422_888
                      * YUV_444_888,YUY2,YV12,RGB_565,RAW10,RAW12,NV21
                      */
-                    for(int k=0;k<pinfo[off1];k++){
-                        const char *formatName = android_ImageFormatName( pinfo[k+off1+1] );
+                    for(k=0;k<pinfo[off1];k++){
+                        formatName = android_ImageFormatName( pinfo[k+off1+1] );
                         if(formatName)
                             av_log(avctx, AV_LOG_INFO,"  pixel_format=%s\n",formatName);
                         else
@@ -145,9 +150,9 @@ android_list_device_options(AVFormatContext *avctx,enum androidDeviceType devtyp
                         /*
                          * 格式和尺寸的组合
                          */
-                        for(int j=0;j<pinfo[2];j++){
-                            int w = pinfo[3+2*j];
-                            int h = pinfo[3+2*j+1];
+                        for(j=0;j<pinfo[2];j++){
+                            w = pinfo[3+2*j];
+                            h = pinfo[3+2*j+1];
                             av_log(avctx, AV_LOG_INFO, "  min s=%ldx%ld fps=%g max s=%ldx%ld fps=%g\n",
                                    w,h,min_fps,w,h,max_fps);
                         }
@@ -199,7 +204,7 @@ static int android_grab_buffer(int type,void * bufObj,int buf_size,unsigned char
      */
     pthread_mutex_lock(&ctx->mutex);
     /*
-     * 这里必须考虑俘获缓冲区大小，如果读帧的数据太慢导致缓冲区积累需要丢弃
+     * 这里必须考虑俘获缓冲区大小，如果读帧数据太慢导致缓冲区积累需要丢弃
      * 这只是简单的控制俘获队列中的缓存区大小
      */
     if( ctx->bufsize > MAX_GRAB_BUFFER_SIZE ){

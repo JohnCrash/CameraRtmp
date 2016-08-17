@@ -41,7 +41,8 @@ static imageFormatName_t _ifns[] = {
  */
 const char * android_ImageFormatName( int ifn )
 {
-    for(int i=0;i<sizeof(_ifns)/sizeof(imageFormatName_t);i++){
+    int i;
+    for(i=0;i<sizeof(_ifns)/sizeof(imageFormatName_t);i++){
         if(_ifns[i].imageFormat==ifn)
             return _ifns[i].imageFormatName;
     }
@@ -53,7 +54,8 @@ const char * android_ImageFormatName( int ifn )
  */
 int android_ImageFormat(const char * fn)
 {
-    for(int i=0;i<sizeof(_ifns)/sizeof(imageFormatName_t);i++){
+    int i;
+    for(i=0;i<sizeof(_ifns)/sizeof(imageFormatName_t);i++){
         if(strcmp(_ifns[i].imageFormatName,fn)==0)
             return _ifns[i].imageFormat;
     }
