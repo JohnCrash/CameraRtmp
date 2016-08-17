@@ -1,14 +1,23 @@
 apply plugin: 'com.android.model.application'
 
-def ffmpeg_path='D:/source/Code/LJSrc/cocos2d-x-2.2.2/external/ffmpeg'
+def ffmpeg_path='D:/source/ffmpeg-lf/android/armeabi'
 
 model {
+    repositories{
+        libs(PrebuiltLibraries){
+            ffmpeg{
+                binaries.withType(SharedLibraryBinary){
+                    sharedLibraryFile = file("./src/main/libs/${targetPlatform.getName()}/libCameraRtmp.so")
+                }
+            }
+        }
+    }
     repositories{
         libs(PrebuiltLibraries){
             avutil{
                 headers.srcDir "${ffmpeg_path}/include"
                 binaries.withType(StaticLibraryBinary){
-                    staticLibraryFile = file("${ffmpeg_path}/prebuilt/android/armeabi/libavutil.a")
+                    staticLibraryFile = file("${ffmpeg_path}/lib/${targetPlatform.getName()}/libavutil.a")
                 }
             }
         }
@@ -18,7 +27,7 @@ model {
             avcodec{
                 headers.srcDir "${ffmpeg_path}/include"
                 binaries.withType(StaticLibraryBinary){
-                    staticLibraryFile = file("${ffmpeg_path}/prebuilt/android/armeabi/libavcodec.a")
+                    staticLibraryFile = file("${ffmpeg_path}/lib/${targetPlatform.getName()}/libavcodec.a")
                 }
             }
         }
@@ -28,7 +37,7 @@ model {
             avformat{
                 headers.srcDir "${ffmpeg_path}/include"
                 binaries.withType(StaticLibraryBinary){
-                    staticLibraryFile = file("${ffmpeg_path}/prebuilt/android/armeabi/libavformat.a")
+                    staticLibraryFile = file("${ffmpeg_path}/lib/${targetPlatform.getName()}/libavformat.a")
                 }
             }
         }
@@ -38,7 +47,7 @@ model {
             avdevice{
                 headers.srcDir "${ffmpeg_path}/include"
                 binaries.withType(StaticLibraryBinary){
-                    staticLibraryFile = file("${ffmpeg_path}/prebuilt/android/armeabi/libavdevice.a")
+                    staticLibraryFile = file("${ffmpeg_path}/lib/${targetPlatform.getName()}/libavdevice.a")
                 }
             }
         }
@@ -48,7 +57,7 @@ model {
             avfilter{
                 headers.srcDir "${ffmpeg_path}/include"
                 binaries.withType(StaticLibraryBinary){
-                    staticLibraryFile = file("${ffmpeg_path}/prebuilt/android/armeabi/libavfilter.a")
+                    staticLibraryFile = file("${ffmpeg_path}/lib/${targetPlatform.getName()}/libavfilter.a")
                 }
             }
         }
@@ -58,7 +67,7 @@ model {
             swresample{
                 headers.srcDir "${ffmpeg_path}/include"
                 binaries.withType(StaticLibraryBinary){
-                    staticLibraryFile = file("${ffmpeg_path}/prebuilt/android/armeabi/libswresample.a")
+                    staticLibraryFile = file("${ffmpeg_path}/lib/${targetPlatform.getName()}/libswresample.a")
                 }
             }
         }
@@ -68,7 +77,7 @@ model {
             swscale{
                 headers.srcDir "${ffmpeg_path}/include"
                 binaries.withType(StaticLibraryBinary){
-                    staticLibraryFile = file("${ffmpeg_path}/prebuilt/android/armeabi/libswscale.a")
+                    staticLibraryFile = file("${ffmpeg_path}/lib/${targetPlatform.getName()}/libswscale.a")
                 }
             }
         }
@@ -84,21 +93,41 @@ model {
             versionCode = 1
             versionName = '1.0'
         }
-
-        ndk {
-            moduleName = 'CameraRtmp'
-          //  toolchain = 'clang'
-            stl = 'gnustl_static'
-            cppFlags.addAll(['-std=c++11','-D__STDC_CONSTANT_MACROS','-D__STDC_LIMIT_MACROS','-D__STDC_FORMAT_MACROS'])
-            ldLibs.addAll(['GLESv2', 'dl', 'log','z'])
+        sources {
+            main {
+                jni {
+                    dependencies {
+                        library 'ffmpeg' linkage 'shared'
+                    }
+                }
+                jniLibs {
+                    // for shared lib, lib need to be pushed to the target too
+                    // Once libs are copied into app/src/main/jniLibs directory,
+                    // Android Studio will pack them into APK's lib/ directory
+                    // Here we like to avoid another duplication by pointing
+                    // to the files that containing our libs' distribution location
+                    // so the same file is used by compiler at host, also packed
+                    // into APk to be used at Target (phone/tablet)
+                    source {
+                        srcDir "./src/main/libs"
+                    }
+                }
+            }
+        }
+        //ndk {
+            //moduleName = 'CameraRtmp'
+            //toolchain = 'clang'
+            //stl = 'gnustl_static'
+            //cppFlags.addAll(['-std=c++11','-D__STDC_CONSTANT_MACROS','-D__STDC_LIMIT_MACROS','-D__STDC_FORMAT_MACROS'])
+            //ldLibs.addAll(['GLESv2', 'dl', 'log','z'])
 
             //abiFilters.addAll(['armeabi'])
             //cFlags "-DANDROID_NDK -std=c++11 -fsigned-char -frtti -fexceptions"
             //ldLibs "GLESv2", "dl", "log"
             //ldLibs "EGL","GLESv3","dl","log"
             //stl "stlport_shared"
-        }
-
+        //}
+        /*
         sources{
             main{
                 jni{
@@ -114,6 +143,7 @@ model {
                 }
             }
         }
+        */
 
         buildTypes {
             release {
