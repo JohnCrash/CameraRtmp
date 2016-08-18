@@ -578,7 +578,7 @@ static const AVClass android_class = {
 };
 
 AVInputFormat ff_android_demuxer = {
-        .name           = "androidCamera",
+        .name           = "android_camera",
         .long_name      = NULL_IF_CONFIG_SMALL("Android camera"),
         .priv_data_size = sizeof(struct android_camera_ctx),
         .read_header    = android_read_header,

@@ -37,14 +37,14 @@ enum android_CallbackType{
 };
 
 
-struct JniMethodInfo
+struct JniMethodInfo_t
 {
     JNIEnv *    env;
     jclass      classID;
     jmethodID   methodID;
 };
 
-typedef int (*JniGetStaticMethodInfo_t)(struct JniMethodInfo *pmethodinfo,
+typedef int (*JniGetStaticMethodInfo_t)(struct JniMethodInfo_t *pmethodinfo,
         const char *className,
         const char *methodName,
         const char *paramCode);

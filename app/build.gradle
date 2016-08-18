@@ -3,6 +3,7 @@ apply plugin: 'com.android.model.application'
 def ffmpeg_path='D:/source/ffmpeg-lf/android/armeabi'
 
 model {
+    /*
     repositories{
         libs(PrebuiltLibraries){
             ffmpeg{
@@ -12,12 +13,13 @@ model {
             }
         }
     }
+    */
     repositories{
         libs(PrebuiltLibraries){
             avutil{
                 headers.srcDir "${ffmpeg_path}/include"
-                binaries.withType(StaticLibraryBinary){
-                    staticLibraryFile = file("${ffmpeg_path}/lib/${targetPlatform.getName()}/libavutil.a")
+                binaries.withType(SharedLibraryBinary){
+                    sharedLibraryFile = file("${ffmpeg_path}/lib/libavutil.so")
                 }
             }
         }
@@ -26,8 +28,8 @@ model {
         libs(PrebuiltLibraries){
             avcodec{
                 headers.srcDir "${ffmpeg_path}/include"
-                binaries.withType(StaticLibraryBinary){
-                    staticLibraryFile = file("${ffmpeg_path}/lib/${targetPlatform.getName()}/libavcodec.a")
+                binaries.withType(SharedLibraryBinary){
+                    sharedLibraryFile = file("${ffmpeg_path}/lib/libavcodec.so")
                 }
             }
         }
@@ -36,8 +38,8 @@ model {
         libs(PrebuiltLibraries){
             avformat{
                 headers.srcDir "${ffmpeg_path}/include"
-                binaries.withType(StaticLibraryBinary){
-                    staticLibraryFile = file("${ffmpeg_path}/lib/${targetPlatform.getName()}/libavformat.a")
+                binaries.withType(SharedLibraryBinary){
+                    sharedLibraryFile = file("${ffmpeg_path}/lib/libavformat.so")
                 }
             }
         }
@@ -46,8 +48,8 @@ model {
         libs(PrebuiltLibraries){
             avdevice{
                 headers.srcDir "${ffmpeg_path}/include"
-                binaries.withType(StaticLibraryBinary){
-                    staticLibraryFile = file("${ffmpeg_path}/lib/${targetPlatform.getName()}/libavdevice.a")
+                binaries.withType(SharedLibraryBinary){
+                    sharedLibraryFile = file("${ffmpeg_path}/lib/libavdevice.so")
                 }
             }
         }
@@ -56,8 +58,8 @@ model {
         libs(PrebuiltLibraries){
             avfilter{
                 headers.srcDir "${ffmpeg_path}/include"
-                binaries.withType(StaticLibraryBinary){
-                    staticLibraryFile = file("${ffmpeg_path}/lib/${targetPlatform.getName()}/libavfilter.a")
+                binaries.withType(SharedLibraryBinary){
+                    sharedLibraryFile = file("${ffmpeg_path}/lib/libavfilter.so")
                 }
             }
         }
@@ -66,8 +68,8 @@ model {
         libs(PrebuiltLibraries){
             swresample{
                 headers.srcDir "${ffmpeg_path}/include"
-                binaries.withType(StaticLibraryBinary){
-                    staticLibraryFile = file("${ffmpeg_path}/lib/${targetPlatform.getName()}/libswresample.a")
+                binaries.withType(SharedLibraryBinary){
+                    sharedLibraryFile = file("${ffmpeg_path}/lib/libswresample.so")
                 }
             }
         }
@@ -76,8 +78,8 @@ model {
         libs(PrebuiltLibraries){
             swscale{
                 headers.srcDir "${ffmpeg_path}/include"
-                binaries.withType(StaticLibraryBinary){
-                    staticLibraryFile = file("${ffmpeg_path}/lib/${targetPlatform.getName()}/libswscale.a")
+                binaries.withType(SharedLibraryBinary){
+                    sharedLibraryFile = file("${ffmpeg_path}/lib/libswscale.so")
                 }
             }
         }
@@ -93,11 +95,31 @@ model {
             versionCode = 1
             versionName = '1.0'
         }
-        sources {
-            main {
-                jni {
-                    dependencies {
-                        library 'ffmpeg' linkage 'shared'
+        ndk {
+            moduleName = 'CameraRtmp'
+            //toolchain = 'clang'
+            stl = 'gnustl_static'
+            cppFlags.addAll(['-std=c++11','-D__STDC_CONSTANT_MACROS','-D__STDC_LIMIT_MACROS','-D__STDC_FORMAT_MACROS'])
+            ldLibs.addAll(['GLESv2', 'dl', 'log','z','m'])
+
+            //abiFilters.addAll(['armeabi'])
+            //cFlags "-DANDROID_NDK -std=c++11 -fsigned-char -frtti -fexceptions"
+            //ldLibs "GLESv2", "dl", "log"
+            //ldLibs "EGL","GLESv3","dl","log"
+            //stl "stlport_shared"
+        }
+
+        sources{
+            main{
+                jni{
+                    dependencies{
+                        library 'avutil' linkage 'shared'
+                        library 'avformat' linkage 'shared'
+                        library 'avcodec' linkage 'shared'
+                        library 'avdevice' linkage 'shared'
+                        library 'swresample' linkage 'shared'
+                        library 'swscale' linkage 'shared'
+                        library 'avfilter' linkage 'shared'
                     }
                 }
                 jniLibs {
@@ -112,39 +134,9 @@ model {
                         srcDir "./src/main/libs"
                     }
                 }
+
             }
         }
-        //ndk {
-            //moduleName = 'CameraRtmp'
-            //toolchain = 'clang'
-            //stl = 'gnustl_static'
-            //cppFlags.addAll(['-std=c++11','-D__STDC_CONSTANT_MACROS','-D__STDC_LIMIT_MACROS','-D__STDC_FORMAT_MACROS'])
-            //ldLibs.addAll(['GLESv2', 'dl', 'log','z'])
-
-            //abiFilters.addAll(['armeabi'])
-            //cFlags "-DANDROID_NDK -std=c++11 -fsigned-char -frtti -fexceptions"
-            //ldLibs "GLESv2", "dl", "log"
-            //ldLibs "EGL","GLESv3","dl","log"
-            //stl "stlport_shared"
-        //}
-        /*
-        sources{
-            main{
-                jni{
-                    dependencies{
-                        library 'avutil' linkage 'static'
-                        library 'avformat' linkage 'static'
-                        library 'avcodec' linkage 'static'
-                        library 'avdevice' linkage 'static'
-                        library 'swresample' linkage 'static'
-                        library 'swscale' linkage 'static'
-                        library 'avfilter' linkage 'static'
-                    }
-                }
-            }
-        }
-        */
-
         buildTypes {
             release {
                 minifyEnabled false

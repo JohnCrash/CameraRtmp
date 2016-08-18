@@ -15,6 +15,7 @@
 #include "ffdec.h"
 #include "ffenc.h"
 #include "live.h"
+#include "android_camera.h"
 
 namespace ff {
     using namespace cocos2d;
@@ -186,6 +187,14 @@ namespace ff {
     {
         LOG("ff::hello()\n");
     }
+
+    int JniHelper_GetStaticMethodInfo(JniMethodInfo *pmethodinfo,
+                                            const char *className,
+                                            const char *methodName,
+                                            const char *paramCode)
+    {
+        return JniHelper::getStaticMethodInfo(*pmethodinfo,className,methodName,paramCode);
+    }
 }
 
 extern "C"
@@ -241,6 +250,7 @@ Java_com_example_wesnoth_camerartmp_AndroidDemuxer_testLiveRtmp(JNIEnv * env , j
     char * audio_name = NULL;
     int vindex = 0;
 
+    jniGetStaticMethodInfo = (JniGetStaticMethodInfo_t)ff::JniHelper_GetStaticMethodInfo;
     LOG("av_ff_init\n");
     av_ff_init();
 

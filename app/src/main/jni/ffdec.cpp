@@ -333,10 +333,12 @@ namespace ff
 			static auto cb = [&](void * acl, int level, const char *format, va_list arg)->void
 			{
 				if (level == AV_LOG_INFO && i < nmax){
-					if (strstr(format, "DirectShow video devices") == format){
+					if (strstr(format, "DirectShow video devices") == format ||
+						strstr(format, "Android camera devices") == format ){
 						type = AV_DEVICE_VIDEO;
 					}
-					else if (strstr(format, "DirectShow audio devices") == format){
+					else if (strstr(format, "DirectShow audio devices") == format ||
+							 strstr(format, "Android audio devices") == format ){
 						type = AV_DEVICE_AUDIO;
 					}
 					else if (strstr(format, " \"%s\"\n") == format){

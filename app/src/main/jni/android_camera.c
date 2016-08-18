@@ -67,7 +67,7 @@ int android_ImageFormat(const char * fn)
  */
 int android_getNumberOfCameras()
 {
-    struct JniMethodInfo jmi;
+    struct JniMethodInfo_t jmi;
     int ret = -1;
     if(jniGetStaticMethodInfo(&jmi,ANDROID_DEMUXER_CLASS_NAME,"getNumberOfCameras","()I")) {
         ret = (*jmi.env)->CallStaticIntMethod(jmi.env,jmi.classID,jmi.methodID);
@@ -81,7 +81,7 @@ int android_getNumberOfCameras()
  */
 int android_getCameraCapabilityInteger(int n, int *pinfo,int len)
 {
-    struct JniMethodInfo jmi;
+    struct JniMethodInfo_t jmi;
     int ret = -1;
     if(jniGetStaticMethodInfo(&jmi,ANDROID_DEMUXER_CLASS_NAME,"getCameraCapabilityInteger","(I[I)I")) {
         jintArray infoObj = (*jmi.env)->NewIntArray(jmi.env,1024*64);
@@ -131,7 +131,7 @@ int android_getCameraCapabilityInteger(int n, int *pinfo,int len)
 int android_openDemuxer(int tex,int nDevice, int w, int h, int fmt, int fps,
                         int nChannel, int sampleFmt, int sampleRate)
 {
-    struct JniMethodInfo jmi;
+    struct JniMethodInfo_t jmi;
     int ret = -1;
     if(jniGetStaticMethodInfo(&jmi,ANDROID_DEMUXER_CLASS_NAME,"openDemuxer","(IIIIIIIII)I")) {
         ret = (*jmi.env)->CallStaticIntMethod(jmi.env,jmi.classID,jmi.methodID,tex,nDevice,w,h,fmt,
@@ -148,7 +148,7 @@ void android_updatePreivewTexture(float * pTextureMatrix)
 {
     if(!pTextureMatrix)return;
 
-    struct JniMethodInfo jmi;
+    struct JniMethodInfo_t jmi;
     if(jniGetStaticMethodInfo(&jmi,ANDROID_DEMUXER_CLASS_NAME,"update","([F)Z")) {
         jfloatArray jfa = (*jmi.env)->NewFloatArray(jmi.env,16);
         (*jmi.env)->CallStaticVoidMethod(jmi.env,jmi.classID,jmi.methodID,jfa);
@@ -164,7 +164,7 @@ void android_updatePreivewTexture(float * pTextureMatrix)
  */
 int64_t android_getPreivewFrameCount()
 {
-    struct JniMethodInfo jmi;
+    struct JniMethodInfo_t jmi;
     if(jniGetStaticMethodInfo(&jmi,ANDROID_DEMUXER_CLASS_NAME,"getGrabFrameCount","(Z)I")) {
         int64_t ret = (int64_t)(*jmi.env)->CallStaticLongMethod(jmi.env,jmi.classID,jmi.methodID);
         (*jmi.env)->DeleteLocalRef(jmi.env,jmi.classID);
@@ -178,7 +178,7 @@ int64_t android_getPreivewFrameCount()
  */
 void android_closeDemuxer()
 {
-    struct JniMethodInfo jmi;
+    struct JniMethodInfo_t jmi;
     if(jniGetStaticMethodInfo(&jmi,ANDROID_DEMUXER_CLASS_NAME,"closeDemuxer","()V")) {
         (*jmi.env)->CallStaticVoidMethod(jmi.env,jmi.classID,jmi.methodID);
         (*jmi.env)->DeleteLocalRef(jmi.env,jmi.classID);
@@ -191,7 +191,7 @@ void android_closeDemuxer()
  */
 int android_autoFoucs(int bAutofocus)
 {
-    struct JniMethodInfo jmi;
+    struct JniMethodInfo_t jmi;
     if(jniGetStaticMethodInfo(&jmi,ANDROID_DEMUXER_CLASS_NAME,"autoFoucs","(Z)Z")) {
         int ret = (*jmi.env)->CallBooleanMethod(jmi.env,jmi.classID,jmi.methodID,bAutofocus)?1:0;
         (*jmi.env)->DeleteLocalRef(jmi.env,jmi.classID);
@@ -205,7 +205,7 @@ int android_autoFoucs(int bAutofocus)
  */
 void android_releaseBuffer(void * bufObj, unsigned char * buf)
 {
-    struct JniMethodInfo jmi;
+    struct JniMethodInfo_t jmi;
     if(!bufObj || !buf)return;
 
     if(jniGetStaticMethodInfo(&jmi,ANDROID_DEMUXER_CLASS_NAME,"releaseBuffer","([B)V")) {
@@ -224,7 +224,7 @@ int android_setDemuxerCallback( AndroidDemuxerCB_t cb )
 
 int android_isClosed()
 {
-    struct JniMethodInfo jmi;
+    struct JniMethodInfo_t jmi;
 
     if(jniGetStaticMethodInfo(&jmi,ANDROID_DEMUXER_CLASS_NAME,"isClosed","()Z")) {
         jboolean b = (*jmi.env)->CallStaticBooleanMethod(jmi.env,jmi.classID,jmi.methodID);
@@ -240,7 +240,7 @@ int android_isClosed()
 int android_getDemuxerInfo(int *pw,int *ph,int *pfmt,int *pfps,
                            int *pch,int *psampleFmt,int *psampleRate)
 {
-    struct JniMethodInfo jmi;
+    struct JniMethodInfo_t jmi;
 
     if(jniGetStaticMethodInfo(&jmi,ANDROID_DEMUXER_CLASS_NAME,"getDemuxerInfo","([I)Z")) {
         jintArray pinfo = (*jmi.env)->NewIntArray(jmi.env,7);

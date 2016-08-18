@@ -148,6 +148,15 @@ public class MainActivity extends AppCompatActivity {
 
     protected void onLoadNativeLibraries(){
         try {
+            /*
+            System.loadLibrary("avutil");
+            System.loadLibrary("swresample");
+            System.loadLibrary("swscale");
+            System.loadLibrary("avfilter");
+            System.loadLibrary("avformat");
+            System.loadLibrary("avcodec");
+            System.loadLibrary("avdevice");
+            */
             System.loadLibrary("CameraRtmp");
         }catch(Exception e){
             e.printStackTrace();
