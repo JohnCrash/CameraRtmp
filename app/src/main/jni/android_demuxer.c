@@ -62,18 +62,21 @@ android_cycle_devices(AVFormatContext *avctx,enum androidDeviceType devtype)
 {
     struct android_camera_ctx *ctx = avctx->priv_data;
     const char *device_name = ctx->device_name[devtype];
+    char name[128];
     int i,n;
 
     if(devtype==VideoDevice){
         n = android_getNumberOfCameras();
         for(i=0;i<n;i++) {
-            av_log(avctx, AV_LOG_INFO, " \"camera_%d\"\n", i);
-            av_log(avctx, AV_LOG_INFO, "    Alternative name \"camera_%d\"\n", i);
+            snprintf(name,128,"camera_%d",i);
+            av_log(avctx, AV_LOG_INFO, " \"%s\"\n", name);
+            av_log(avctx, AV_LOG_INFO, "    Alternative name \"%s\"\n", name);
         }
     }
     else if(devtype==AudioDevice){
-        av_log(avctx, AV_LOG_INFO, " \"microphone\"\n");
-        av_log(avctx, AV_LOG_INFO, "    Alternative name \"microphone\"\n");
+        strcpy(name,"microphone");
+        av_log(avctx, AV_LOG_INFO, " \"%s\"\n",name);
+        av_log(avctx, AV_LOG_INFO, "    Alternative name \"%s\"\n",name);
     }
     else{
         return AVERROR(EIO);
@@ -103,17 +106,18 @@ android_list_device_options(AVFormatContext *avctx,enum androidDeviceType devtyp
     struct android_camera_ctx *ctx = avctx->priv_data;
     const char *device_name = ctx->device_name[devtype];
     int deviceId;
-    int n,i,off1,off2,min_fps,max_fps,s,fps,k;
+    int n,i,off1,off2,s,fps,k;
     int * pinfo;
     int j,w,h;
     const char *formatName;
+    double min_fps,max_fps;
 
-    deviceId = parse_device_id(device_name);
-    if(deviceId<0){
-        av_log(avctx, AV_LOG_ERROR, "android_list_device_options device name:%s\n", deviceId);
-        return AVERROR(EIO);
-    }
     if(devtype==VideoDevice){
+        deviceId = parse_device_id(device_name);
+        if(deviceId<0){
+            av_log(avctx, AV_LOG_ERROR, "android_list_device_options device name:%s\n", deviceId);
+            return AVERROR(EIO);
+        }
         n = android_getNumberOfCameras();
         pinfo = malloc(MAXCAPS*sizeof(int));
         for(i=0;i<n;i++) {
@@ -143,16 +147,16 @@ android_list_device_options(AVFormatContext *avctx,enum androidDeviceType devtyp
                      */
                     for(k=0;k<pinfo[off1];k++){
                         formatName = android_ImageFormatName( pinfo[k+off1+1] );
-                        if(formatName)
-                            av_log(avctx, AV_LOG_INFO,"  pixel_format=%s\n",formatName);
-                        else
-                            av_log(avctx, AV_LOG_INFO,"    pixel_format=%s\n",pinfo[k+off1+1]);
                         /*
                          * 格式和尺寸的组合
                          */
                         for(j=0;j<pinfo[2];j++){
                             w = pinfo[3+2*j];
                             h = pinfo[3+2*j+1];
+                            if(formatName)
+                                av_log(avctx, AV_LOG_INFO,"  pixel_format=%s\n",formatName);
+                            else
+                                av_log(avctx, AV_LOG_INFO,"  pixel_format=UNKNOW\n");
                             av_log(avctx, AV_LOG_INFO, "  min s=%ldx%ld fps=%g max s=%ldx%ld fps=%g\n",
                                    w,h,min_fps,w,h,max_fps);
                         }
@@ -423,6 +427,8 @@ static int android_read_header(AVFormatContext *avctx)
                 }
             }
         }
+        ret = AVERROR_EXIT;
+        return ret;
     }
     /*
      * 打开android摄像头设备和录音设备
