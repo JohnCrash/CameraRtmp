@@ -11,6 +11,10 @@
 #include "JniHelper.h"
 #include <GLES2/gl2.h>
 #include <GLES2/gl2ext.h>
+#include "ffcommon.h"
+#include "ffdec.h"
+#include "ffenc.h"
+#include "live.h"
 
 namespace ff {
     using namespace cocos2d;
@@ -213,6 +217,8 @@ int type, jbyteArray bobj,int len,int fmt,int p0,int p1,jlong timestramp)
     env->DeleteLocalRef(bobj);
 }
 
+using namespace ff;
+
 JNIEXPORT void JNICALL
 Java_com_example_wesnoth_camerartmp_AndroidDemuxer_testLiveRtmpEnd(JNIEnv * env , jclass cls)
 {
@@ -230,6 +236,69 @@ int testCB(int type,void * bufObj,int size,unsigned char * buf,int fmt,int p0,in
 JNIEXPORT void JNICALL
 Java_com_example_wesnoth_camerartmp_AndroidDemuxer_testLiveRtmp(JNIEnv * env , jclass cls,int tex)
 {
+    AVDevice caps[8];
+    char * video_name = NULL;
+    char * audio_name = NULL;
+    int vindex = 0;
+
+    LOG("av_ff_init\n");
+    av_ff_init();
+
+    LOG("ffCapDevicesList\n");
+    int count = ffCapDevicesList(caps, 8);
+    int vi = 0;
+    LOG("ffCapDevicesList return %d\n",count);
+    for (int m = 0; m < count; m++){
+        if (!video_name && caps[m].type == AV_DEVICE_VIDEO){
+            if (vi == vindex){
+                video_name = caps[m].alternative_name;
+                LOG("select : %s\n", caps[m].name);
+            }
+            vi++;
+        }
+    else if (!audio_name && caps[m].type == AV_DEVICE_AUDIO){
+        audio_name = caps[m].alternative_name;
+    }
+    if (1){
+            LOG("device name : %s \n %s\n", caps[m].name,caps[m].alternative_name);
+
+            for (int i = 0; i < caps[m].capability_count; i++){
+                if (caps[m].type == AV_DEVICE_VIDEO){
+                    int min_w = caps[m].capability[i].video.min_w;
+                    int min_h = caps[m].capability[i].video.min_h;
+                    int min_fps = caps[m].capability[i].video.min_fps;
+                    int max_w = caps[m].capability[i].video.max_w;
+                    int max_h = caps[m].capability[i].video.max_h;
+                    int max_fps = caps[m].capability[i].video.max_fps;
+                    char * pix = caps[m].capability[i].video.pix_format;
+                    char * name = caps[m].capability[i].video.codec_name;
+                    LOG("min w = %d min h = %d min fps = %d "
+                    "max w = %d max h = %d max fps = %d "
+                    "fmt = %s\n",
+                    min_w, min_h, min_fps,
+                    max_w, max_h, max_fps,
+                    pix);
+                }
+                else{
+                    int min_ch = caps[m].capability[i].audio.min_ch;
+                    int min_bit = caps[m].capability[i].audio.min_bit;
+                    int min_rate = caps[m].capability[i].audio.min_rate;
+                    int max_ch = caps[m].capability[i].audio.max_ch;
+                    int max_bit = caps[m].capability[i].audio.max_bit;
+                    int max_rate = caps[m].capability[i].audio.max_rate;
+                    char * fmt = caps[m].capability[i].audio.sample_format;
+                    char * name = caps[m].capability[i].audio.codec_name;
+                    LOG("min ch = %d min bit = %d min samples = %d "
+                    "max ch = %d max bit = %d max samples = %d "
+                    "fmt = %s\n",
+                    min_ch, min_bit, min_rate,
+                    max_ch, max_bit, max_rate,
+                    fmt);
+                }
+            }
+        }
+    }
+
     LOG("call ff::getNumberOfCameras()\n");
     int n = ff::android_getNumberOfCameras();
     LOG("ff::getNumberOfCameras return %d\n",n);

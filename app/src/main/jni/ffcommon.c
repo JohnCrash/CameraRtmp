@@ -96,3 +96,23 @@ int avcodec_encode_init(AVCodecContext *c,enum AVCodecID codec_id, AVDictionary 
     }
     return 0;
 }
+
+static int _ff_init = 0;
+
+void av_ff_init()
+{
+    if( _ff_init )return;
+
+    avdevice_register_all();
+    avfilter_register_all();
+    av_register_all();
+    avformat_network_init();
+
+#ifdef __ANDROID__
+    {
+        extern AVInputFormat ff_android_demuxer;
+        av_register_input_format(&ff_android_demuxer);
+    }
+#endif
+    _ff_init = 1;
+}

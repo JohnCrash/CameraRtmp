@@ -151,7 +151,7 @@ model {
                 proguardFiles.add(file('proguard-android.txt'))
             }
             debug {
-              //  jniDebuggable = true
+                //jniDebuggable = true
                 debuggable = true
             }
         }
