@@ -196,6 +196,9 @@ static int android_grab_buffer(int type,void * bufObj,int buf_size,unsigned char
     struct android_camera_ctx *ctx;
     AVPacketList **ppktl, *pktl_next;
 
+    if(type!=VIDEO_DATA || type!=AUDIO_DATA){
+        return 0;
+    }
     if(!_avctx){
         av_log(_avctx, AV_LOG_ERROR, "android_grab_buffer _avctx=NULL'.\n");
         return -1;
@@ -305,6 +308,22 @@ static enum AVPixelFormat android_pixfmt(int fmt)
     }
 }
 
+static enum android_ImageFormat android_pixfmt2av(enum AVPixelFormat fmt)
+{
+    switch(fmt){
+        case AV_PIX_FMT_NV21:return NV21;
+        case AV_PIX_FMT_NV16:return NV16;
+        //case AV_PIX_FMT_YUV420P:return YUV_420_888;
+        case AV_PIX_FMT_YUV422P:return YUV_422_888;
+        case AV_PIX_FMT_YUV444P:return YUV_444_888;
+        case AV_PIX_FMT_YUV420P:return YV12;//宽度16位对齐的YUV420P,stride = ALIGN(width, 16)
+        case AV_PIX_FMT_YUYV422:return YUY2;
+        case AV_PIX_FMT_GBRAP:return FLEX_RGBA_8888;
+        case AV_PIX_FMT_GBRP:return FLEX_RGB_888;
+        default:return -1;
+    }
+}
+
 static int android_pixfmt_prebits(int fmt)
 {
     switch(fmt){
@@ -373,6 +392,7 @@ static int add_device(AVFormatContext *avctx,enum androidDeviceType devtype)
 static int android_read_header(AVFormatContext *avctx)
 {
     int ret = AVERROR(EIO);
+    int android_pix_fmt,android_sample_fmt;
     struct android_camera_ctx * ctx;
     ctx = avctx->priv_data;
 
@@ -441,15 +461,17 @@ static int android_read_header(AVFormatContext *avctx)
                ctx->requested_height,
                ctx->pixel_format, av_q2d(ctx->requested_framerate),
                ctx->channels, 16, ctx->sample_rate);
+        android_pix_fmt = android_pixfmt2av(ctx->pixel_format);
+        android_sample_fmt = 16;
         int result = android_openDemuxer(ctx->oes_texture, iDevice, ctx->requested_width,
                                          ctx->requested_height,
-                                         ctx->pixel_format, av_q2d(ctx->requested_framerate),
-                                         ctx->channels, ctx->sample_format, ctx->sample_rate);
+                                         android_pix_fmt, av_q2d(ctx->requested_framerate),
+                                         ctx->channels, android_sample_fmt, ctx->sample_rate);
         if(!result){
             av_log(avctx, AV_LOG_ERROR, "android_openDemuxer return %d\n",result);
             return ret;
         }
-        if( ctx->oes_texture > 0 ) {
+        if( ctx->oes_texture >= 0 ) {
             ret = add_device(avctx, VideoDevice);
             if (ret < 0) {
                 av_log(avctx, AV_LOG_ERROR, "add_device VideoDevice return %d\n", ret);
@@ -463,11 +485,11 @@ static int android_read_header(AVFormatContext *avctx)
                 return ret;
             }
         }
-        if(!pthread_mutex_init(&ctx->mutex,NULL)){
+        if(pthread_mutex_init(&ctx->mutex,NULL)){
             av_log(avctx, AV_LOG_ERROR, "pthread_mutex_init non-zero");
             return ret;
         }
-        if(!pthread_cond_init(&ctx->cond,NULL)){
+        if(pthread_cond_init(&ctx->cond,NULL)){
             av_log(avctx, AV_LOG_ERROR, "pthread_cond_init non-zero");
             return ret;
         }

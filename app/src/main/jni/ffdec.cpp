@@ -101,9 +101,9 @@ namespace ff
 			}
 			//filename = "video=.." ,open dshow device
 			if (filename && strstr(filename, "video=") == filename){
-				file_iformat = av_find_input_format("dshow");
+				file_iformat = av_find_input_format(CAP_DEVICE_NAME);
 				if (!file_iformat){
-					av_log(NULL, AV_LOG_FATAL, "Unknown input format: 'dshow'\n");
+					av_log(NULL, AV_LOG_FATAL, "Unknown input format: '%s'\n",CAP_DEVICE_NAME);
 					break;
 				}
 			}

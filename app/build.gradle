@@ -1,6 +1,7 @@
 apply plugin: 'com.android.model.application'
 
 def ffmpeg_path='D:/source/ffmpeg-lf/android/armeabi'
+def x264_path='D:/source/x264/build/android/armeabi'
 
 model {
     /*
@@ -84,6 +85,26 @@ model {
             }
         }
     }
+    repositories{
+        libs(PrebuiltLibraries){
+            postproc{
+                headers.srcDir "${ffmpeg_path}/include"
+                binaries.withType(SharedLibraryBinary){
+                    sharedLibraryFile = file("${ffmpeg_path}/lib/libpostproc.so")
+                }
+            }
+        }
+    }
+    repositories{
+        libs(PrebuiltLibraries){
+            x264{
+                headers.srcDir "${x264_path}/include"
+                binaries.withType(SharedLibraryBinary){
+                    sharedLibraryFile = file("${x264_path}/lib/libx264.so")
+                }
+            }
+        }
+    }
     android {
         compileSdkVersion = 23
         buildToolsVersion = '23.0.0'
@@ -120,6 +141,8 @@ model {
                         library 'swresample' linkage 'shared'
                         library 'swscale' linkage 'shared'
                         library 'avfilter' linkage 'shared'
+                        library 'x264' linkage 'shared'
+                        library 'postproc' linkage 'shared'
                     }
                 }
                 jniLibs {

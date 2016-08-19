@@ -338,6 +338,7 @@ public class AndroidDemuxer{
     }
 
     public static void closeDemuxer(){
+        boolean isrelease = false;
         if(_cam!=null){
             _cam.stopPreview();
 
@@ -348,6 +349,7 @@ public class AndroidDemuxer{
             _textrue = null;
             _cam = null;
             _nGrabFrame = 0;
+            isrelease = true;
         }
         if(_audioRecord!=null) {
             _audioRecordLoop = false;
@@ -367,7 +369,8 @@ public class AndroidDemuxer{
             _buffers.clear();
             _buffers = null;
         }
-        ratainBuffer(5, null,0,0,0,0,System.nanoTime()-_timeStrampBegin);
+        if(isrelease)
+            ratainBuffer(5, null,0,0,0,0,System.nanoTime()-_timeStrampBegin);
         Log.e(TAG, "closeDemuxer  end");
     }
 }

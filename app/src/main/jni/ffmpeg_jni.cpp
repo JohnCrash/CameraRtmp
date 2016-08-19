@@ -242,6 +242,17 @@ int testCB(int type,void * bufObj,int size,unsigned char * buf,int fmt,int p0,in
     return 0;
 }
 
+static int liveCallback(liveState *pls)
+{
+//	LOG("live state : %d\n", pls->state);
+    if (pls->state == LIVE_ERROR){
+        for (int i = 0; i < pls->nerror; i++){
+            LOG(pls->errorMsg[i]);
+        }
+    }
+    return 0;
+}
+
 JNIEXPORT void JNICALL
 Java_com_example_wesnoth_camerartmp_AndroidDemuxer_testLiveRtmp(JNIEnv * env , jclass cls,int tex)
 {
@@ -254,6 +265,9 @@ Java_com_example_wesnoth_camerartmp_AndroidDemuxer_testLiveRtmp(JNIEnv * env , j
     LOG("av_ff_init\n");
     av_ff_init();
 
+/*
+ * android camera enum test
+ */
     LOG("ffCapDevicesList\n");
     int count = ffCapDevicesList(caps, 8);
     int vi = 0;
@@ -308,7 +322,23 @@ Java_com_example_wesnoth_camerartmp_AndroidDemuxer_testLiveRtmp(JNIEnv * env , j
             }
         }
     }
+/*
+ * android camera live test
+ */
+    char fmt_name[256];
+    int w, h, fps;
+    w = 640;
+    h = 480;
+    fps = 30;
+    strcpy(fmt_name, "yuv420p");
 
+    liveOnRtmp("rtmp://192.168.7.157/myapp/mystream",
+                video_name,w,h,fps,fmt_name,1024*1024,
+                audio_name,22050,"s16",32*1024,liveCallback);
+/*
+ * camera preview test
+ */
+#if 0
     LOG("call ff::getNumberOfCameras()\n");
     int n = ff::android_getNumberOfCameras();
     LOG("ff::getNumberOfCameras return %d\n",n);
@@ -355,6 +385,7 @@ Java_com_example_wesnoth_camerartmp_AndroidDemuxer_testLiveRtmp(JNIEnv * env , j
     }else{
       LOG("android_openDemuxer return error %d\n",ret);
     }
+#endif
 }
 
 JNIEXPORT jint JNICALL

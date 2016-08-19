@@ -254,6 +254,7 @@ int android_getDemuxerInfo(int *pw,int *ph,int *pfmt,int *pfps,
         if(psampleFmt)*psampleFmt = pbuf[5];
         if(psampleRate)*psampleRate = pbuf[6];
         (*jmi.env)->ReleaseIntArrayElements(jmi.env,pinfo,pbuf,JNI_ABORT);
+        (*jmi.env)->DeleteLocalRef(jmi.env,pinfo);
         (*jmi.env)->DeleteLocalRef(jmi.env,jmi.classID);
         return b ? 0 : -1;
     }
