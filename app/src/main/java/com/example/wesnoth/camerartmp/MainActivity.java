@@ -27,6 +27,7 @@ public class MainActivity extends AppCompatActivity {
     {
         context = this;
 
+        /*
         mGLPreview = new GLSurfaceView(this);
         mGLPreview.setEGLContextClientVersion(2);
         mGLPreview.setRenderer(new OpenGLRenderer());
@@ -37,6 +38,18 @@ public class MainActivity extends AppCompatActivity {
                 AndroidDemuxer.autoFocus(true);
             }
         });
+        */
+        mGLPreview = new GLSurfaceView(this);
+        mGLPreview.setEGLContextClientVersion(2);
+        mGLPreview.setRenderer(new MyGLRenderer());
+        mGLPreview.setOnClickListener(new View.OnClickListener(){
+            @Override
+            public void onClick(View view){
+                Log.w(TAG,"autoFocus");
+                AndroidDemuxer.autoFocus(true);
+            }
+        });
+
         setContentView(mGLPreview);
     }
 
@@ -99,6 +112,7 @@ public class MainActivity extends AppCompatActivity {
         Thread t = new Thread(new Runnable() {
             @Override
             public void run() {
+                /*
                 while(OpenGLRenderer._camTextrue==-1){
                     try {
                         Thread.sleep(10);
@@ -107,6 +121,7 @@ public class MainActivity extends AppCompatActivity {
                         return;
                     }
                 }
+                */
                 AndroidDemuxer.testLiveRtmp(OpenGLRenderer._camTextrue);
                 //AndroidDemuxer.openDemuxer(OpenGLRenderer._camTextrue,
                 //        0,640,480,17,-1,

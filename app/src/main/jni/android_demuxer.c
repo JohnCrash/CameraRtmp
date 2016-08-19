@@ -467,11 +467,11 @@ static int android_read_header(AVFormatContext *avctx)
                                          ctx->requested_height,
                                          android_pix_fmt, av_q2d(ctx->requested_framerate),
                                          ctx->channels, android_sample_fmt, ctx->sample_rate);
-        if(!result){
+        if(result){
             av_log(avctx, AV_LOG_ERROR, "android_openDemuxer return %d\n",result);
             return ret;
         }
-        if( ctx->oes_texture >= 0 ) {
+        if( ctx->oes_texture >= -1 ) {
             ret = add_device(avctx, VideoDevice);
             if (ret < 0) {
                 av_log(avctx, AV_LOG_ERROR, "add_device VideoDevice return %d\n", ret);

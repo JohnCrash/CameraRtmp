@@ -489,6 +489,8 @@ namespace ff
 		}
 		snprintf(buf, 32, "%d", fmt);
 		av_dict_set(&opt, "pixel_format", buf, 0);
+
+		av_dict_set(&opt, "oes_texture", "-1", 0); //use default oes
 		return ffCreateDecodeContext(filename, opt);
 	}
 }
