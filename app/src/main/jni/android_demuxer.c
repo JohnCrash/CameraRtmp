@@ -100,6 +100,21 @@ static int parse_device_id(const char *device_name)
     return -1;
 }
 
+static const char * android_2pixfmt_name(int fmt){
+    switch(fmt){
+        case NV21:return "nv21";
+        case NV16:return "nv16";
+        case YUV_420_888:return "yuv420p";
+        case YUV_422_888:return "yuv422p";
+        case YUV_444_888:return "yuv444p";
+        case YV12:return "nv12";
+        case YUY2:return "yuyv422";
+        case FLEX_RGBA_8888:return "gbrap";
+        case FLEX_RGB_888:return "gbrp";
+        default:return "none";
+    }
+}
+
 static int
 android_list_device_options(AVFormatContext *avctx,enum androidDeviceType devtype)
 {
@@ -146,7 +161,7 @@ android_list_device_options(AVFormatContext *avctx,enum androidDeviceType devtyp
                      * YUV_444_888,YUY2,YV12,RGB_565,RAW10,RAW12,NV21
                      */
                     for(k=0;k<pinfo[off1];k++){
-                        formatName = android_ImageFormatName( pinfo[k+off1+1] );
+                        formatName = android_2pixfmt_name( pinfo[k+off1+1] );
                         /*
                          * 格式和尺寸的组合
                          */
@@ -196,12 +211,15 @@ static int android_grab_buffer(int type,void * bufObj,int buf_size,unsigned char
     struct android_camera_ctx *ctx;
     AVPacketList **ppktl, *pktl_next;
 
-    if(type!=VIDEO_DATA || type!=AUDIO_DATA){
+    av_log(_avctx,AV_LOG_ERROR,"android_grab_buffer %d ,size=%d",type,buf_size);
+    if(type!=VIDEO_DATA && type!=AUDIO_DATA){
         return 0;
     }
     if(!_avctx){
+        if(type==VIDEO_DATA)
+            android_releaseBuffer(bufObj,buf);
         av_log(_avctx, AV_LOG_ERROR, "android_grab_buffer _avctx=NULL'.\n");
-        return -1;
+        return 0;
     }
 
     ctx = _avctx->priv_data;
@@ -209,6 +227,7 @@ static int android_grab_buffer(int type,void * bufObj,int buf_size,unsigned char
     /*
      * 这里需要进行线程同步，标准生产消费模型
      */
+    av_log(_avctx,AV_LOG_ERROR,"grab lock");
     pthread_mutex_lock(&ctx->mutex);
     /*
      * 这里必须考虑俘获缓冲区大小，如果读帧数据太慢导致缓冲区积累需要丢弃
@@ -219,6 +238,8 @@ static int android_grab_buffer(int type,void * bufObj,int buf_size,unsigned char
             android_releaseBuffer(bufObj,buf);
         pthread_cond_signal(&ctx->cond); //别免空队列无限等待
         pthread_mutex_unlock(&ctx->mutex);
+        av_log(_avctx,AV_LOG_ERROR,"grab signal");
+        av_log(_avctx,AV_LOG_ERROR,"grab unlock");
         av_log(_avctx,AV_LOG_ERROR,"real-time buffer too full,frame dropped!");
         return 0;
     }
@@ -227,6 +248,8 @@ static int android_grab_buffer(int type,void * bufObj,int buf_size,unsigned char
     if(!pktl_next){
         pthread_cond_signal(&ctx->cond); //别免空队列无限等待
         pthread_mutex_unlock(&ctx->mutex);
+        av_log(_avctx,AV_LOG_ERROR,"grab signal -2");
+        av_log(_avctx,AV_LOG_ERROR,"grab unlock -2");
         return -2;
     }
     pktl_next->pkt.pts = timestramp;
@@ -253,6 +276,8 @@ static int android_grab_buffer(int type,void * bufObj,int buf_size,unsigned char
             av_free(pktl_next);
             pthread_cond_signal(&ctx->cond); //别免空队列无限等待
             pthread_mutex_unlock(&ctx->mutex);
+            av_log(_avctx,AV_LOG_ERROR,"grab signal -3");
+            av_log(_avctx,AV_LOG_ERROR,"grab unlock -3");
             return -3;
         }
 
@@ -269,6 +294,8 @@ static int android_grab_buffer(int type,void * bufObj,int buf_size,unsigned char
     ctx->bufsize += buf_size;
     pthread_cond_signal(&ctx->cond);
     pthread_mutex_unlock(&ctx->mutex);
+    av_log(_avctx,AV_LOG_ERROR,"grab signal end");
+    av_log(_avctx,AV_LOG_ERROR,"grab unlock end");
     return 0;
 }
 
@@ -300,11 +327,27 @@ static enum AVPixelFormat android_pixfmt(int fmt)
         case YUV_420_888:return AV_PIX_FMT_YUV420P;
         case YUV_422_888:return AV_PIX_FMT_YUV422P;
         case YUV_444_888:return AV_PIX_FMT_YUV444P;
-        case YV12:return AV_PIX_FMT_YUV420P;//宽度16位对齐的YUV420P,stride = ALIGN(width, 16)
+        case YV12:return AV_PIX_FMT_NV12;
         case YUY2:return AV_PIX_FMT_YUYV422;
         case FLEX_RGBA_8888:return AV_PIX_FMT_GBRAP;
         case FLEX_RGB_888:return AV_PIX_FMT_GBRP;
         default:return AV_PIX_FMT_NONE;
+    }
+}
+
+static unsigned int android_pixfmt_tag(int fmt)
+{
+    switch(fmt){
+        case NV21:return MKTAG('N', 'V', '2', '1');
+        case NV16:return MKTAG('N', 'V', '1', '6');
+        case YUV_420_888:return MKTAG('Y', 'V', '1', '2');
+        case YUV_422_888:return MKTAG('Y', '4', '2', 'B');
+        case YUV_444_888:return MKTAG('4', '4', '4', 'P');
+        case YV12:return MKTAG('N', 'V', '1', '2');
+        case YUY2:return MKTAG('y', 'u', 'v', '2');
+        case FLEX_RGBA_8888:return 0;
+        case FLEX_RGB_888:return MKTAG('G', '3', 00 ,  8 );
+        default:return 0;
     }
 }
 
@@ -367,18 +410,20 @@ static int add_device(AVFormatContext *avctx,enum androidDeviceType devtype)
             ret = AVERROR(ENOMEM);
             return ret;
         }
-        time_base = (AVRational) { fps, 10000000 };
+
+        time_base = (AVRational) { 10000000/fps, 10000000 };
         st->avg_frame_rate = av_inv_q(time_base);
         st->r_frame_rate = av_inv_q(time_base);
         par->codec_type = AVMEDIA_TYPE_VIDEO;
         par->width      = width;
         par->height     = height;
         par->format = android_pixfmt(fmt);
+        par->codec_tag = android_pixfmt_tag(fmt);
         par->codec_id = AV_CODEC_ID_RAWVIDEO;
         par->bits_per_coded_sample = android_pixfmt_prebits(fmt);
     } else{
         par->codec_type  = AVMEDIA_TYPE_AUDIO;
-        par->format      = waveform_format(ctx->sample_format);
+        par->format      = waveform_format(ctx->sample_size);
         par->codec_id    = waveform_codec_id(par->format);
         par->sample_rate = ctx->sample_rate;
         par->channels    = ctx->channels;
@@ -463,6 +508,7 @@ static int android_read_header(AVFormatContext *avctx)
                ctx->channels, 16, ctx->sample_rate);
         android_pix_fmt = android_pixfmt2av(ctx->pixel_format);
         android_sample_fmt = 16;
+        ctx->oes_texture = -1;
         int result = android_openDemuxer(ctx->oes_texture, iDevice, ctx->requested_width,
                                          ctx->requested_height,
                                          android_pix_fmt, av_q2d(ctx->requested_framerate),
@@ -513,10 +559,12 @@ static int android_read_packet(AVFormatContext *s, AVPacket *pkt)
     /*
      * 俘获线程和读取线程，需要同步处理
      */
+    av_log(_avctx,AV_LOG_ERROR,"android_read_packet");
     while (!ctx->eof && !pktl) {
         //WaitForSingleObject(ctx->mutex, INFINITE);
+        av_log(_avctx,AV_LOG_ERROR,"android_read_packet lock");
         pthread_mutex_lock(&ctx->mutex);
-
+        av_log(_avctx,AV_LOG_ERROR,"android_read_packet lock 1");
         pktl = ctx->pktl;
         if (pktl) {
             *pkt = pktl->pkt;
@@ -526,20 +574,29 @@ static int android_read_packet(AVFormatContext *s, AVPacket *pkt)
         }
         //ResetEvent(ctx->event[1]);
         //ReleaseMutex(ctx->mutex);
-        pthread_mutex_unlock(&ctx->mutex);
 
         if (!pktl) {
             if (_avctx==NULL || android_isClosed()) {
                 ctx->eof = 1;
+                av_log(_avctx,AV_LOG_ERROR,"android_read_packet eof=1");
             } else if (s->flags & AVFMT_FLAG_NONBLOCK) {
+                av_log(_avctx,AV_LOG_ERROR,"android_read_packet unlock error 0");
+                pthread_mutex_unlock(&ctx->mutex);
+                av_log(_avctx,AV_LOG_ERROR,"android_read_packet unlock error");
                 return AVERROR(EAGAIN);
             } else {
                 //WaitForMultipleObjects(2, ctx->event, 0, INFINITE);
+                av_log(_avctx,AV_LOG_ERROR,"android_read_packet wait 0");
                 pthread_cond_wait(&ctx->cond,&ctx->mutex);
+                av_log(_avctx,AV_LOG_ERROR,"android_read_packet wait");
             }
         }
+        av_log(_avctx,AV_LOG_ERROR,"android_read_packet unlock 0");
+        pthread_mutex_unlock(&ctx->mutex);
+        av_log(_avctx,AV_LOG_ERROR,"android_read_packet unlock");
     }
 
+    av_log(_avctx,AV_LOG_ERROR,"android_read_packet return");
     return ctx->eof ? AVERROR(EIO) : pkt->size;
 }
 

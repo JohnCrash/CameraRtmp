@@ -78,6 +78,7 @@ public class AndroidDemuxer{
     private static Thread _audioRecordThread = null;
     private static boolean _audioRecordLoop = false;
     private static boolean _audioRecordStop = true;
+    private static boolean _isopened = false;
     private static SurfaceTexture _textrue = null;
     private static Thread _preivewThread = null;
     private static int _sampleFmt,_channel;
@@ -118,8 +119,19 @@ public class AndroidDemuxer{
                                             int fmt,int p0,int p1,
                                             long timestramp);
 
+    private static int _totalFrameSize = 0;
     public static byte [] newFrame(){
-        return new byte[_bufferSize];
+        byte [] buf;
+        try {
+            buf = new byte[_bufferSize];
+            _totalFrameSize++;
+        }catch(Exception e){
+            Log.e(TAG,String.format("newFrame new byte %d",_bufferSize));
+            Log.e(TAG,String.format("totalFrameSize %d",_totalFrameSize));
+            Log.e(TAG,e.getMessage());
+            return null;
+        }
+        return buf;
     }
 
     public static boolean autoFocus(boolean b){
@@ -157,6 +169,8 @@ public class AndroidDemuxer{
     public static int openDemuxer(int tex,int nDevice,int w,int h,int fmt,int fps,
                                   int nChannel,int sampleFmt,int sampleRate ){
         Camera.Parameters config;
+        _isopened = false;
+
         if(Build.VERSION.SDK_INT < 11){
             Log.e(TAG,"openDemuxer need API level 11 or later");
             return -11;
@@ -165,7 +179,7 @@ public class AndroidDemuxer{
             Log.e(TAG,"openDemuxer already opened");
             return -10;
         }
-        if( nDevice>=0 && tex >= 0 ) {
+        if( nDevice>=0 && tex >= -1 ) {
             int bitsPrePixel = ImageFormat.getBitsPerPixel(fmt);
             if (bitsPrePixel <= 0 || w <= 0 || h <= 0) {
                 Log.e(TAG,"openDemuxer invalid argument");
@@ -242,7 +256,12 @@ public class AndroidDemuxer{
                 public void onPreviewFrame(byte[] data, Camera camera) {
                     //Log.w(TAG, String.format("onPreviewFrame 0 %d",data.length));
                     //_currentBuf = Arrays.copyOf(data,data.length);
-                    ratainBuffer(0, data,data.length,_pixFmt,_width,_height,System.nanoTime()-_timeStrampBegin);
+                    if(_isopened) {
+                        Log.e(TAG, String.format("PreviewCallbackWithBuffer 0 %d",data.length));
+                        ratainBuffer(0, data, data.length, _pixFmt, _width, _height, System.nanoTime() - _timeStrampBegin);
+                    }else{
+                        releaseBuffer(data);
+                    }
                     synchronized (_buffers) {
                         if (_buffers.isEmpty()) {
                             _cam.addCallbackBuffer(newFrame());
@@ -252,20 +271,24 @@ public class AndroidDemuxer{
                     }
                 }
             });
-
             _tex = tex;
+            _textrue = null;
             _timeStrampBegin = System.nanoTime();
             _preivewThread = new Thread(new Runnable(){
                 @Override
                 public void run(){
                     try {
+                        Log.e(TAG,"previewThread 1");
                         _nGrabFrame = 0;
+                        Log.e(TAG,"previewThread 2");
                         if(_tex==-1){
                             _RequestMakeOESTexture = true;
                             int count = 0;
+                            Log.e(TAG,"previewThread 3");
                             while(_RequestMakeOESTexture){
                                 try{
                                     Thread.sleep(20);
+                                    Log.e(TAG,"previewThread 4");
                                 }catch(Exception e){
                                     Log.e(TAG,"openDemuxer _RequestMakeOESTexture Thread.sleep");
                                     Log.e(TAG,e.getMessage());
@@ -280,6 +303,7 @@ public class AndroidDemuxer{
                                 }
                             }
                         }
+                        Log.e(TAG,"previewThread 6");
                         if(_tex==-1){
                             Log.e(TAG,"openDemuxer RequestMakeOESTexture failed!");
                             closeDemuxer();
@@ -289,8 +313,10 @@ public class AndroidDemuxer{
                         _textrue.setOnFrameAvailableListener(new SurfaceTexture.OnFrameAvailableListener(){
                             @Override
                             public void onFrameAvailable(SurfaceTexture surfaceTexture){
-                                //Log.w(TAG,"openDemuxer onFrameAvailable");
-                                ratainBuffer(3, null,0,0,0,0,System.nanoTime()-_timeStrampBegin);
+                                if(_isopened) {
+                                    Log.e(TAG, "openDemuxer onFrameAvailable");
+                                    ratainBuffer(3, null, 0, 0, 0, 0, System.nanoTime() - _timeStrampBegin);
+                                }
                                 _nGrabFrame++;
                             }
                         });
@@ -298,12 +324,14 @@ public class AndroidDemuxer{
                     }catch(Exception e){
                         Log.e(TAG,e.getMessage());
                     }
-
+                    Log.e(TAG,"previewThread startPreview");
                     _cam.startPreview();
+                    Log.e(TAG,"previewThread autoFocus");
                     autoFocus(true);
+                    Log.e(TAG,"previewThread done");
                 }
             });
-            ratainBuffer(4, null,0,0,0,0,System.nanoTime()-_timeStrampBegin);
+             //ratainBuffer(4, null,0,0,0,0,System.nanoTime()-_timeStrampBegin);
             _preivewThread.start();
         }
 
@@ -333,12 +361,15 @@ public class AndroidDemuxer{
                 return -7;
             }
             _audioRecordLoop = true;
+            Log.e(TAG,"startRecording ");
             _audioRecord.startRecording();
+            Log.e(TAG,"startRecording done. ");
             _audioRecordThread = new Thread(new Runnable(){
                 @Override
                 public void run(){
                     byte[] buffer = new byte[bufferSize];
                     _audioRecordStop = false;
+                    Log.e(TAG,"_audioRecordThread 1");
                     while(_audioRecordLoop){
                         int result = _audioRecord.read(buffer,0,bufferSize);
                         if(result<0){
@@ -348,15 +379,40 @@ public class AndroidDemuxer{
                             _audioRecord = null;
                             break;
                         }
-                     //   Log.e(TAG, String.format("onPreviewFrame 1 %d",result));
-                        ratainBuffer(1,buffer,result,_sampleFmt,_channel,0,System.nanoTime()-_timeStrampBegin);
+                        if(_isopened) {
+                            Log.e(TAG, String.format("onPreviewFrame 1 %d", result));
+                            ratainBuffer(1, buffer, result, _sampleFmt, _channel, 0, System.nanoTime() - _timeStrampBegin);
+                        }
                     }
+                    Log.e(TAG,"_audioRecordThread done");
                     _audioRecordStop = true;
                 }
             });
-
+            Log.e(TAG,"_audioRecordThread start ");
             _audioRecordThread.start();
         }
+        /*
+         * 等待启动线程都正确启动了在返回
+         */
+        Log.e(TAG,"wait done 1");
+        while( _audioRecordStop || _textrue==null ){
+            if( _audioRecord == null ){
+                Log.e(TAG,"openDemuxer audioRecord thread stop");
+                return -20;
+            }
+            if( _cam == null ){
+                Log.e(TAG,"openDemuxer preivew thread stop");
+                return -21;
+            }
+            try{
+                Log.e(TAG,"waiting done ...");
+                Thread.sleep(20);
+            }catch(Exception e){
+                return -22;
+            }
+        }
+        _isopened = true;
+        Log.e(TAG,"wait done!");
         return 0;
     }
 
@@ -399,13 +455,16 @@ public class AndroidDemuxer{
         return false;
     }
 
+
+
     public static void closeDemuxer(){
         if(_cam!=null){
             _cam.stopPreview();
 
             _cam.setPreviewCallback(null);
 
-            _textrue.release();
+            if(_textrue!=null)
+                _textrue.release();
             _cam.release();
             _textrue = null;
             _cam = null;
@@ -430,7 +489,8 @@ public class AndroidDemuxer{
             _buffers.clear();
             _buffers = null;
         }
-        ratainBuffer(5, null,0,0,0,0,System.nanoTime()-_timeStrampBegin);
+        //ratainBuffer(5, null,0,0,0,0,System.nanoTime()-_timeStrampBegin);
+        _isopened = false;
         Log.e(TAG, "closeDemuxer  end");
     }
 }

@@ -122,7 +122,7 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }
                 */
-                AndroidDemuxer.testLiveRtmp(OpenGLRenderer._camTextrue);
+                AndroidDemuxer.testLiveRtmp(0);
                 //AndroidDemuxer.openDemuxer(OpenGLRenderer._camTextrue,
                 //        0,640,480,17,-1,
                 //        2,0,44100);

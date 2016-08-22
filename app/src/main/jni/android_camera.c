@@ -260,6 +260,7 @@ int android_getDemuxerInfo(int *pw,int *ph,int *pfmt,int *pfps,
     }
     return -2;
 }
+
 /*
  * 图像数据和音频数据传入
  */

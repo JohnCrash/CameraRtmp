@@ -330,7 +330,7 @@ Java_com_example_wesnoth_camerartmp_AndroidDemuxer_testLiveRtmp(JNIEnv * env , j
     w = 640;
     h = 480;
     fps = 30;
-    strcpy(fmt_name, "yuv420p");
+    strcpy(fmt_name, "nv21");
 
     liveOnRtmp("rtmp://192.168.7.157/myapp/mystream",
                 video_name,w,h,fps,fmt_name,1024*1024,
