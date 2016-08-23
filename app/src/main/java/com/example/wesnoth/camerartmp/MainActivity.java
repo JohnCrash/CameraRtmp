@@ -164,14 +164,18 @@ public class MainActivity extends AppCompatActivity {
     protected void onLoadNativeLibraries(){
         try {
             /*
+             * 在老版本的android系统上，需要严格的加载顺序(4.2.2)
+             * 新版本上直接可以使用一句:System.loadLibrary("CameraRtmp"); (5.1.1)
+             */
+            System.loadLibrary("x264");
             System.loadLibrary("avutil");
+            System.loadLibrary("postproc");
             System.loadLibrary("swresample");
             System.loadLibrary("swscale");
-            System.loadLibrary("avfilter");
-            System.loadLibrary("avformat");
             System.loadLibrary("avcodec");
+            System.loadLibrary("avformat");
+            System.loadLibrary("avfilter");
             System.loadLibrary("avdevice");
-            */
             System.loadLibrary("CameraRtmp");
         }catch(Exception e){
             e.printStackTrace();
