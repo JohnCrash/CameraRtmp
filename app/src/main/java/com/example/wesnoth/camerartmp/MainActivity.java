@@ -46,7 +46,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View view){
                 Log.w(TAG,"autoFocus");
-                AndroidDemuxer.autoFocus(true);
+                org.ffmpeg.device.AndroidDemuxer.autoFocus(true);
             }
         });
 

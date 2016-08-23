@@ -200,27 +200,28 @@ namespace ff
 
 		while (1){
 			/*
-			 * ���ȳ�ʼ��������
+			 * ��ʼ��������
 			 */
-			vid = camera_name ? AV_CODEC_ID_H264 : AV_CODEC_ID_NONE;
-			aid = phone_name ? AV_CODEC_ID_AAC : AV_CODEC_ID_NONE;
-			pec = ffCreateEncodeContext(rtmp_publisher, "flv", w, h, afps, vbitRate, vid,
-				w, h, pixFmt,
-				rate, abitRate, aid,
-				AUDIO_CHANNEL, rate, sampleFmt,
-				opt);
-			if (!pec){
+			pdc = ffCreateCapDeviceDecodeContext(camera_name, w, h, fps, pixFmt, phone_name, AUDIO_CHANNEL, AUDIO_CHANNELBIT, rate, opt);
+			if (!pdc || !pdc->_video_st || !pdc->_video_st->codec){
 				if (cb){
 					state.state = LIVE_ERROR;
 					cb(&state);
 				}
 				break;
 			}
+			AVCodecContext *ctx = pdc->_video_st->codec;
 			/*
-			 * ��ʼ��������
+			 * ���ȳ�ʼ��������
 			 */
-			pdc = ffCreateCapDeviceDecodeContext(camera_name, w, h, fps, pixFmt, phone_name, AUDIO_CHANNEL, AUDIO_CHANNELBIT, rate, opt);
-			if (!pdc){
+			vid = camera_name ? AV_CODEC_ID_H264 : AV_CODEC_ID_NONE;
+			aid = phone_name ? AV_CODEC_ID_AAC : AV_CODEC_ID_NONE;
+			pec = ffCreateEncodeContext(rtmp_publisher, "flv", w, h, afps, vbitRate, vid,
+										ctx->width, ctx->height, ctx->pix_fmt,
+										rate, abitRate, aid,
+										AUDIO_CHANNEL, rate, sampleFmt,
+										opt);
+			if (!pec){
 				if (cb){
 					state.state = LIVE_ERROR;
 					cb(&state);

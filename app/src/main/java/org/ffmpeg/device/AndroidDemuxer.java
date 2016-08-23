@@ -109,8 +109,10 @@ public class AndroidDemuxer{
     public static void releaseBuffer(byte [] data){
         if(_buffers!=null) {
             synchronized (_buffers) {
-                if (_bufferSize == data.length)
+                if (_bufferSize == data.length) {
                     _buffers.push(data);
+                    Log.e(TAG,String.format("releaseBuffer %d x %d",_totalFrameSize,_bufferSize));
+                }
             }
         }
     }
@@ -125,6 +127,7 @@ public class AndroidDemuxer{
         try {
             buf = new byte[_bufferSize];
             _totalFrameSize++;
+            Log.e(TAG,String.format("newFrame new %d x %d",_totalFrameSize,_bufferSize));
         }catch(Exception e){
             Log.e(TAG,String.format("newFrame new byte %d",_bufferSize));
             Log.e(TAG,String.format("totalFrameSize %d",_totalFrameSize));

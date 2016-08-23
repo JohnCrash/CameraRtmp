@@ -150,7 +150,7 @@ namespace ff
 			}
 			if (pdc->has_video)
 			{
-				if (open_video(pdc, pdc->_video_st->codec->codec_id, opt_arg) < 0)
+				if (open_video(pdc, pdc->_video_st->codec->codec_id, NULL) < 0)
 				{
 					ffCloseDecodeContext(pdc);
 					return NULL;
@@ -159,7 +159,7 @@ namespace ff
 			}
 			if (pdc->has_audio)
 			{
-				if (open_audio(pdc, pdc->_audio_st->codec->codec_id, opt_arg) < 0)
+				if (open_audio(pdc, pdc->_audio_st->codec->codec_id, NULL) < 0)
 				{
 					ffCloseDecodeContext(pdc);
 					return NULL;
